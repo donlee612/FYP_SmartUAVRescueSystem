@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 const SosPage = () => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Text>這是SosPage</Text>
+      <Text>{t('sosPage.title')}</Text>
     </View>
   );
 };

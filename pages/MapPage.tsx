@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Button, Modal, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface MapPageProps {
   onSelectPage: (page: number) => void;
 }
 
 const MapPage: React.FC<MapPageProps> = ({ onSelectPage }) => {
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
 
   return (
     <View style={styles.container}>
-      <Text>這是MapPage</Text>
-      <Button title="選擇操作" onPress={() => setModalVisible(true)} />
+      <Text>{t('mapPage.title')}</Text>
+      <Button title={t('mapPage.selectAction')} onPress={() => setModalVisible(true)} />
 
       {/* Modal for button sheet */}
       <Modal
@@ -22,13 +24,13 @@ const MapPage: React.FC<MapPageProps> = ({ onSelectPage }) => {
       >
         <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.button} onPress={() => { setModalVisible(false); onSelectPage(4); }}>
-            <Text>QuickStart</Text>
+            <Text>{t('mapPage.quickStart')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={() => { setModalVisible(false); onSelectPage(5); }}>
-            <Text>預約</Text>
+            <Text>{t('mapPage.booking')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={() => setModalVisible(false)}>
-            <Text>取消</Text>
+            <Text>{t('mapPage.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </Modal>

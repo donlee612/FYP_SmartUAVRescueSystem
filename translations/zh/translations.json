@@ -1,5 +1,34 @@
 {
-  "welcome": "歡迎來到主頁！",
-  "profile": "這是個人資料頁面！",
-  "settings": "這是設置頁面！"
+  "header": {
+    "currentPage": "當前頁面"
+  },
+  "footer": {
+    "mapPage": "地圖頁",
+    "sosPage": "SOS頁",
+    "settingPage": "設置頁"
+  },
+  "mapPage": {
+    "title": "這是MapPage",
+    "selectAction": "選擇操作",
+    "quickStart": "快速開始",
+    "booking": "預約",
+    "cancel": "取消"
+  },
+  "sosPage": {
+    "title": "這是SosPage"
+  },
+  "settingPage": {
+    "title": "這是SettingPage",
+    "switchLanguage": "切換到{language}",
+    "language": {
+      "en": "英文",
+      "zh": "中文"
+    }
+  },
+  "quickStartPage": {
+    "title": "這是QuickStartPage"
+  },
+  "eventBookingPage": {
+    "title": "這是EventBookingPage"
+  }
 }
