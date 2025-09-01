@@ -1,0 +1,35 @@
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import MapPage from '../pages/MapPage';
+import SosPage from '../pages/SosPage';
+import SettingPage from '../pages/SettingPage';
+import QuickStartPage from '../pages/QuickStartPage'; 
+import EventBookingPage from '../pages/EventBookingPage'; 
+
+interface ContentProps {
+  currentPage: number;
+  onSelectPage: (page: number) => void;
+}
+
+const Content: React.FC<ContentProps> = ({ currentPage, onSelectPage }) => {
+  const renderPage = () => {
+    switch (currentPage) {
+      case 1: return <MapPage onSelectPage={onSelectPage} />;
+      case 2: return <SosPage />;
+      case 3: return <SettingPage />;
+      case 4: return <QuickStartPage />;
+      case 5: return <EventBookingPage />;
+      default: return <MapPage onSelectPage={onSelectPage} />;
+    }
+  };
+
+  return <View style={styles.content}>{renderPage()}</View>;
+};
+
+const styles = StyleSheet.create({
+  content: {
+    flex: 0.8,
+  },
+});
+
+export default Content;
