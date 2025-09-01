@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Content from './components/Content';
+import { SafeAreaView, StyleSheet } from 'react-native';
+import { Header, Footer, Content } from './components';
+import './translations/i18n'; // 導入 i18n 配置
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Header />
       <Content currentPage={currentPage} onSelectPage={setCurrentPage} />
       <Footer onSelectPage={setCurrentPage} />
-    </View>
+    </SafeAreaView>
   );
 };
 

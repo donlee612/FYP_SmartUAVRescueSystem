@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 const Header = () => {
+  const { t } = useTranslation();
   return (
     <View style={styles.header}>
-      <Text>當前頁面</Text>
+      <Text>{t('header.currentPage')}</Text>
     </View>
   );
 };

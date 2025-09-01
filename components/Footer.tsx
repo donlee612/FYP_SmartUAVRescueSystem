@@ -1,17 +1,19 @@
 import React from 'react';
 import { View, Button, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface FooterProps {
   onSelectPage: (page: number) => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ onSelectPage }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.footer}>
       <View style={styles.buttonContainer}>
-        <Button title="地圖頁" onPress={() => onSelectPage(1)} />
-        <Button title="SOS頁" onPress={() => onSelectPage(2)} />
-        <Button title="設置頁" onPress={() => onSelectPage(3)} />
+        <Button title={t('footer.mapPage')} onPress={() => onSelectPage(1)} />
+        <Button title={t('footer.sosPage')} onPress={() => onSelectPage(2)} />
+        <Button title={t('footer.settingPage')} onPress={() => onSelectPage(3)} />
       </View>
     </View>
   );

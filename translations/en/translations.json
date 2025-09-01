@@ -1,5 +1,34 @@
 {
-  "welcome": "Welcome to the Home Page!",
-  "profile": "This is the Profile Page!",
-  "settings": "This is the Settings Page!"
+  "header": {
+    "currentPage": "Current Page"
+  },
+  "footer": {
+    "mapPage": "Map Page",
+    "sosPage": "SOS Page",
+    "settingPage": "Settings Page"
+  },
+  "mapPage": {
+    "title": "This is Map Page",
+    "selectAction": "Select Action",
+    "quickStart": "Quick Start",
+    "booking": "Booking",
+    "cancel": "Cancel"
+  },
+  "sosPage": {
+    "title": "This is SOS Page"
+  },
+  "settingPage": {
+    "title": "This is Settings Page",
+    "switchLanguage": "Switch to {language}",
+    "language": {
+      "en": "English",
+      "zh": "Chinese"
+    }
+  },
+  "quickStartPage": {
+    "title": "This is Quick Start Page"
+  },
+  "eventBookingPage": {
+    "title": "This is Event Booking Page"
+  }
 }
