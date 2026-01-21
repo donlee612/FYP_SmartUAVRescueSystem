@@ -5,6 +5,7 @@ import SosPage from '../pages/SosPage';
 import SettingPage from '../pages/SettingPage';
 import QuickStartPage from '../pages/QuickStartPage'; 
 import EventBookingPage from '../pages/EventBookingPage'; 
+import ProfilePage from '../pages/ProfilePage';
 
 interface ContentProps {
   currentPage: number;
@@ -16,9 +17,10 @@ const Content: React.FC<ContentProps> = ({ currentPage, onSelectPage }) => {
     switch (currentPage) {
       case 1: return <MapPage onSelectPage={onSelectPage} />;
       case 2: return <SosPage />;
-      case 3: return <SettingPage />;
+      case 3: return <SettingPage onSelectPage={onSelectPage} />;
       case 4: return <QuickStartPage />;
       case 5: return <EventBookingPage />;
+      case 6: return <ProfilePage />;
       default: return <MapPage onSelectPage={onSelectPage} />;
     }
   };

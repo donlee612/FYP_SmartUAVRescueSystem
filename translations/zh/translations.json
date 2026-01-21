@@ -15,7 +15,12 @@
     "cancel": "取消"
   },
   "sosPage": {
-    "title": "這是SosPage"
+    "title": "緊急求救",
+    "description": "點擊下方按鈕可快速撥打緊急號碼 999",
+    "callButton": "立即撥打 999",
+    "errorTitle": "無法撥打",
+    "noPhoneApp": "此裝置上沒有電話應用程式",
+    "callFailed": "無法開啟撥號介面，請稍後再試"
   },
   "settingPage": {
     "title": "這是SettingPage",
@@ -23,12 +28,40 @@
     "language": {
       "en": "英文",
       "zh": "中文"
-    }
+    },
+    "goToProfile": "設定我的個人資料"
   },
   "quickStartPage": {
-    "title": "這是QuickStartPage"
+    "title": "這是QuickStartPage",
+    "quickStart": "快速開始",
+    "endTracking": "結束追蹤",
+    "locationFailed": "定位失敗",
+    "startTracking": "已開始每5分鐘記錄定位",
+    "trackingEnded": "追蹤已結束",
+    "showRoute": "已停止記錄並顯示路線"
   },
   "eventBookingPage": {
     "title": "這是EventBookingPage"
+  },
+  "profilePage": {
+    "title": "MyDrone",
+    "myDetails": "我的資料",
+    "firstName": "名字",
+    "lastName": "姓氏",
+    "gender": "性別 / 不願透露（可留空）",
+    "phoneNumber": "電話號碼",
+    "emergencyContacts": "緊急聯絡人",
+    "person": "聯絡人",
+    "name": "姓名",
+    "addNewEmergencyContact": "新增緊急聯絡人",
+    "setUpProfile": "設定個人資料",
+    "profileSaved": "個人資料已儲存！",
+    "placeholder": {
+      "firstName": "請輸入你的名字",
+      "lastName": "請輸入你的姓氏",
+      "gender": "不願透露可留空",
+      "phoneNumber": "例如：+852 9123 4567",
+      "name": "聯絡人姓名"
+    }
   }
 }
