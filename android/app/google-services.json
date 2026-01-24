@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "73425703079",
+    "project_id": "mydrone-7dff8",
+    "storage_bucket": "mydrone-7dff8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:73425703079:android:58b358aed433d10b9dcb82",
+        "android_client_info": {
+          "package_name": "com.fypproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAkpugMiPdlOqcXwJ3XAJTMUOCYTQlpmk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

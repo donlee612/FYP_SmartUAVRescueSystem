@@ -1,22 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import { View, Text, Button, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-interface SettingPageProps {
+interface Props {
   onSelectPage: (page: number) => void;
 }
 
-const SettingPage: React.FC<SettingPageProps> = ({ onSelectPage }) => {
+const SettingPage: React.FC<Props> = ({ onSelectPage }) => {
   const { t, i18n } = useTranslation();
-  const currentLanguage = i18n.language;
-  const targetLanguage = currentLanguage === 'en' ? 'zh' : 'en';
+  const nextLang = i18n.language === 'en' ? 'zh' : 'en';
 
   return (
     <View style={styles.container}>
-      <Text>{t('settingPage.title')}</Text>
+      <Text style={styles.title}>{t('settingPage.title')}</Text>
       <Button
-        title={t('settingPage.switchLanguage', { language: t(`settingPage.language.${targetLanguage}`) })}
-        onPress={() => i18n.changeLanguage(targetLanguage)}
+        title={t('settingPage.switchLanguage', { language: nextLang })}
+        onPress={() => i18n.changeLanguage(nextLang)}
       />
       <Button title={t('settingPage.goToProfile')} onPress={() => onSelectPage(6)} />
     </View>
@@ -24,11 +23,8 @@ const SettingPage: React.FC<SettingPageProps> = ({ onSelectPage }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 22, marginBottom: 20 },
 });
 
 export default SettingPage;

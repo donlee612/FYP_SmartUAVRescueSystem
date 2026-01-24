@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import MapPage from '../pages/MapPage';
 import SosPage from '../pages/SosPage';
 import SettingPage from '../pages/SettingPage';
-import QuickStartPage from '../pages/QuickStartPage'; 
-import EventBookingPage from '../pages/EventBookingPage'; 
+import QuickStartPage from '../pages/QuickStartPage';
+import EventBookingPage from '../pages/EventBookingPage';
 import ProfilePage from '../pages/ProfilePage';
+import { initDb } from '..android/app/src/services/db/initDb'; // Adjust the path as necessary
 
 interface ContentProps {
   currentPage: number;
   onSelectPage: (page: number) => void;
+  dbInitialized: boolean; // New prop to check if DB is initialized
 }
 
-const Content: React.FC<ContentProps> = ({ currentPage, onSelectPage }) => {
+const Content: React.FC<ContentProps> = ({ currentPage, onSelectPage, dbInitialized }) => {
+
   const renderPage = () => {
     switch (currentPage) {
       case 1: return <MapPage onSelectPage={onSelectPage} />;
@@ -24,6 +27,15 @@ const Content: React.FC<ContentProps> = ({ currentPage, onSelectPage }) => {
       default: return <MapPage onSelectPage={onSelectPage} />;
     }
   };
+
+  // You can perform any additional setup here if needed
+  useEffect(() => {
+    if (dbInitialized) {
+      // Optionally fetch data or perform additional operations
+      console.log("Database is initialized, ready to interact.");
+      // fetchData(); // Uncomment if you handle fetching data based on initialized DB
+    }
+  }, [dbInitialized]);
 
   return <View style={styles.content}>{renderPage()}</View>;
 };
