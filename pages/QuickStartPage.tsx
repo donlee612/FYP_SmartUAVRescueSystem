@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import Geolocation from '@react-native-community/geolocation';
 import MapView, { Polyline } from 'react-native-maps';
+import { Platform, PermissionsAndroid, Linking } from 'react-native';
 
 // Team Note: Simple in-memory database for tracking locations
 // Production: Replace with persistent storage when database issues resolved
@@ -151,7 +152,10 @@ const QuickStartPage = () => {
   };
 
   // Team Note: Primary location acquisition function
-  const acquireLocation = () => {
+  const acquireLocation = async () => {
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) return;
+
     Geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude } = position.coords;
@@ -163,35 +167,46 @@ const QuickStartPage = () => {
         const locationPoint = {
           lat: latitude,
           lng: longitude,
-          timestamp: timestamp
+          timestamp
         };
 
-        // Update display state
         setLocations(prev => {
           const updatedLocations = [...prev, locationPoint];
           updateStats(updatedLocations);
           return updatedLocations;
         });
 
-        // Store in tracking database
         if (currentRoute) {
           await tracker.addLocation(latitude, longitude, currentRoute.id);
         }
 
         setLastUpdateTime(timestamp);
-        console.log(`📍 Location acquired: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} at ${timestamp}`);
+        console.log(`📍 Location acquired: ${latitude}, ${longitude}`);
       },
       error => {
-        console.warn('⚠️ Location acquisition failed:', error.message);
-        Alert.alert(
-          'Location Service',
-          'Unable to acquire location. Please verify location permissions are enabled.'
-        );
+        console.warn('⚠️ Location error:', error);
+
+        let message = 'Unable to acquire location.';
+        switch (error.code) {
+          case 1:
+            message = 'Location permission denied.';
+            break;
+          case 2:
+            message = 'Location unavailable. Check GPS or network.';
+            break;
+          case 3:
+            message = 'Location request timed out.';
+            break;
+        }
+
+        Alert.alert('Location Service', message);
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 300000 // Team Note: Accept location data up to 5 minutes old
+        timeout: 20000,
+        maximumAge: 300000,
+        forceRequestLocation: true,
+        showLocationDialog: true,
       }
     );
   };
@@ -323,6 +338,47 @@ const QuickStartPage = () => {
       [{ text: 'Acknowledged' }]
     );
   };
+
+const requestLocationPermission = async (): Promise<boolean> => {
+  if (Platform.OS === 'ios') {
+    return true; // iOS handled via Info.plist
+  }
+
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      {
+        title: 'Location Permission Required',
+        message:
+          'This app needs access to your location to track your route.',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      }
+    );
+
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      console.log('✅ Location permission granted');
+      return true;
+    } else {
+      Alert.alert(
+        'Permission Denied',
+        'Location permission is required for tracking.',
+        [
+          { text: 'Cancel' },
+          {
+            text: 'Open Settings',
+            onPress: () => Linking.openSettings(),
+          },
+        ]
+      );
+      return false;
+    }
+  } catch (err) {
+    console.warn('Permission request error:', err);
+    return false;
+  }
+};
 
   // Team Note: Clear current session data
   const resetSessionData = () => {
