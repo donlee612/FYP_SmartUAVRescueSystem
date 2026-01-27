@@ -2,33 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { SafeAreaView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Header, Footer, Content } from './components';
 import './translations/i18n';
-import { initDb, getDb, reset } from './android/app/src/services/db/initDb';
+import { initDb } from './android/app/src/services/db/initDb';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [dbInitialized, setDbInitialized] = useState(false);
-  const [loading, setLoading] = useState(true); // State for loading indicator
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
+        console.log('🔥 App starting — initializing database');
         await initDb();
+        console.log('✅ Database initialized successfully');
         setDbInitialized(true);
-        console.log('Database initialized successfully');
       } catch (error) {
-        console.error('Failed to initialize database:', error);
+        console.error('❌ Failed to initialize database:', error);
       } finally {
-        setLoading(false); // Stop loading when done
+        setLoading(false);
       }
     };
 
     initializeDatabase();
   }, []);
 
+useEffect(() => {
+  (async () => {
+    try {
+      await initDb();
+      console.log('✅ DB initialized');
+    } catch (e) {
+      console.error('DB init failed:', e);
+    }
+  })();
+}, []);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" /> {/* Loading spinner */}
+        <ActivityIndicator size="large" color="#0000ff" />
       </SafeAreaView>
     );
   }
@@ -36,7 +48,12 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Header />
-      <Content currentPage={currentPage} onSelectPage={setCurrentPage} />
+      {dbInitialized && (
+        <Content
+          currentPage={currentPage}
+          onSelectPage={setCurrentPage}
+        />
+      )}
       <Footer onSelectPage={setCurrentPage} />
     </SafeAreaView>
   );

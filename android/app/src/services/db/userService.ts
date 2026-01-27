@@ -1,33 +1,34 @@
-import { db } from './firebaseConfig'; // Firebase setup
-import initDb from './initDb';
+import { db as firebaseDb } from './firebaseConfig';
+import { initDb, getDb } from './initDb';
 
-// SQLite Functions
-export const addUserProfileSQLite = async (user) => {
+// ✅ SQLite
+export const addUserProfileSQLite = async (user: any) => {
   try {
-    const db = await initDb();
-    await db.run(`INSERT INTO user (first_name, last_name, phone, emergency_contacts, medical_conditions) VALUES (?, ?, ?, ?, ?)`,
-      [user.firstName, user.lastName, user.phone, JSON.stringify(user.emergencyContacts), user.medicalConditions]);
-    console.log("User profile added to SQLite.");
-  } catch (error) {
-    console.error("Error adding user profile to SQLite:", error);
-    alert("Unable to add user profile. Please try again.");
-  }
-};
+    await initDb();               // ✅ init
+    const db = getDb();           // ✅ get instance
 
-// Firebase Functions
-export const addUserProfileFirebase = async (user) => {
-  try {
-    const userRef = collection(db, 'users');
-    await addDoc(userRef, {
-      first_name: user.firstName,
-      last_name: user.lastName,
-      phone: user.phone,
-      emergency_contacts: user.emergencyContacts,
-      medical_conditions: user.medicalConditions
-    });
-    console.log("User profile added to Firebase.");
+    await db.executeSql(
+      `INSERT INTO user (
+        first_name,
+        last_name,
+        phone,
+        emergency_contacts,
+        medical_notes,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [
+        user.firstName,
+        user.lastName,
+        user.phone,
+        JSON.stringify(user.emergencyContacts),
+        user.medicalConditions,
+      ]
+    );
+
+    console.log('✅ User profile saved to SQLite');
   } catch (error) {
-    console.error("Error adding user profile to Firebase:", error);
-    alert("Unable to add user profile to Firebase. Please try again.");
+    console.error('❌ SQLite profile save failed:', error);
+    throw error;
   }
 };

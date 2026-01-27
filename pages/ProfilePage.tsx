@@ -14,7 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 // SQLite helpers
-import initDb, { resetDb }  from '../android/app/src/services/db/initDb';
+import { initDb, getDb, resetDb } from '../android/app/src/services/db/initDb';
 
 interface EmergencyContact {
   name: string;
@@ -53,7 +53,8 @@ const ProfilePage = () => {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const db = await initDb();
+      await initDb();
+      const db = getDb();
 
       const result = await db.executeSql(
         'SELECT * FROM user ORDER BY id DESC LIMIT 1'
@@ -116,7 +117,8 @@ const ProfilePage = () => {
     setSaving(true);
 
     try {
-      const db = await initDb();
+      await initDb();
+      const db = getDb();
 
       const contacts = JSON.stringify(
         emergencyContacts.filter(c => c.name || c.phone)
@@ -177,11 +179,8 @@ const ProfilePage = () => {
         Alert.alert('Profile Created', 'Your rescue profile is ready.');
       }
     } catch (error: any) {
-      console.error('Save error FULL:', error);
-      Alert.alert(
-        'Save Error',
-        error?.message ?? JSON.stringify(error)
-      );
+      console.error('❌ Save error:', error);
+      Alert.alert('Save Error', error?.message ?? 'Unknown error');
     } finally {
       setSaving(false);
     }
