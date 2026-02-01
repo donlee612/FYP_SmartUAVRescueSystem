@@ -22,7 +22,7 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="28"
         tools:ignore="GoogleAppIndexingWarning">
-        
+
         <!-- Google Maps API key（你已經有，保留） -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
