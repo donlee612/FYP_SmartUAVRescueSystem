@@ -15,7 +15,12 @@
     "cancel": "Cancel"
   },
   "sosPage": {
-    "title": "This is SOS Page"
+    "title": "SOS Emergency",
+    "description": "Tap the button below to quickly call emergency number 999",
+    "callButton": "CALL 999 NOW",
+    "errorTitle": "Unable to Call",
+    "noPhoneApp": "No phone app available on this device",
+    "callFailed": "Failed to open dialer. Please try again."
   },
   "settingPage": {
     "title": "This is Settings Page",
@@ -23,12 +28,40 @@
     "language": {
       "en": "English",
       "zh": "Chinese"
-    }
+    },
+    "goToProfile": "Edit My Profile"
   },
   "quickStartPage": {
-    "title": "This is Quick Start Page"
+    "title": "This is Quick Start Page",
+    "quickStart": "Quick Start",
+    "endTracking": "End Tracking",
+    "locationFailed": "Location failed",
+    "startTracking": "Started tracking every 5 minutes",
+    "trackingEnded": "Tracking ended",
+    "showRoute": "Stopped tracking and showing route"
   },
   "eventBookingPage": {
     "title": "This is Event Booking Page"
+  },
+  "profilePage": {
+    "title": "MyDrone",
+    "myDetails": "My Details",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "gender": "Gender / Prefer Not To Say (Leave It Blank)",
+    "phoneNumber": "Phone Number",
+    "emergencyContacts": "Emergency Contacts",
+    "person": "Details of Person",
+    "name": "Name",
+    "addNewEmergencyContact": "Add New Emergency Contact",
+    "setUpProfile": "Set Up Profile",
+    "profileSaved": "Profile saved!",
+    "placeholder": {
+      "firstName": "Enter your first name",
+      "lastName": "Enter your last name",
+      "gender": "Leave blank if prefer not to say",
+      "phoneNumber": "e.g. +852 9123 4567",
+      "name": "Contact name"
+    }
   }
 }
