@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,228 +9,354 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+
+// SQLite helpers
+import { initDb, getDb, resetDb } from '../services/db/initDb';
+
+interface EmergencyContact {
+  name: string;
+  phone: string;
+}
 
 const ProfilePage = () => {
   const { t } = useTranslation();
 
-  // 表單狀態
+  // Profile fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [gender, setGender] = useState(''); // 可留空
+  const [gender, setGender] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [medicalNotes, setMedicalNotes] = useState('');
 
-  // 緊急聯絡人（支援多個）
-  const [emergencyContacts, setEmergencyContacts] = useState<
-    { name: string; phone: string }[]
-  >([{ name: '', phone: '' }]);
+  // Emergency contacts
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
+    { name: '', phone: '' },
+  ]);
 
+  // State
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [profileExists, setProfileExists] = useState(false);
+  const [profileId, setProfileId] = useState<number | null>(null);
+
+  /* -------------------------------------------------------
+     Load profile on mount
+  -------------------------------------------------------- */
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      await initDb();
+      const db = getDb();
+
+      const result = await db.executeSql(
+        'SELECT * FROM user ORDER BY id DESC LIMIT 1'
+      );
+
+      if (result[0].rows.length > 0) {
+        const user = result[0].rows.item(0);
+
+        setFirstName(user.first_name || '');
+        setLastName(user.last_name || '');
+        setGender(user.gender || '');
+        setPhoneNumber(user.phone || '');
+        setEmail(user.email || '');
+        setMedicalNotes(user.medical_notes || '');
+        setProfileId(user.id);
+        setProfileExists(true);
+
+        if (user.emergency_contacts) {
+          try {
+            const parsed = JSON.parse(user.emergency_contacts);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setEmergencyContacts(parsed);
+            }
+          } catch {}
+        }
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* -------------------------------------------------------
+     Emergency contacts helpers
+  -------------------------------------------------------- */
   const addEmergencyContact = () => {
     setEmergencyContacts([...emergencyContacts, { name: '', phone: '' }]);
   };
 
-  const updateEmergencyContact = (index: number, field: 'name' | 'phone', value: string) => {
-    const newContacts = [...emergencyContacts];
-    newContacts[index] = { ...newContacts[index], [field]: value };
-    setEmergencyContacts(newContacts);
+  const updateEmergencyContact = (
+    index: number,
+    field: 'name' | 'phone',
+    value: string
+  ) => {
+    const updated = [...emergencyContacts];
+    updated[index] = { ...updated[index], [field]: value };
+    setEmergencyContacts(updated);
   };
 
-  const handleSubmit = () => {
-    // 這裡可以做表單驗證 + 送出到後端 / 儲存到本地
-    console.log({
-      firstName,
-      lastName,
-      gender: gender || 'Not specified',
-      phoneNumber,
-      emergencyContacts,
-    });
-    // 之後可改成 call API 或儲存到 AsyncStorage / context
-    Alert.alert(t('profilePage.profileSaved'));
+  /* -------------------------------------------------------
+     Save profile (insert or update)
+  -------------------------------------------------------- */
+  const saveProfile = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      Alert.alert('Required Fields', 'First and last name are required.');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await initDb();
+      const db = getDb();
+
+      const contacts = JSON.stringify(
+        emergencyContacts.filter(c => c.name || c.phone)
+      );
+
+      if (profileExists && profileId) {
+        await db.executeSql(
+          `UPDATE user SET
+            first_name = ?,
+            last_name = ?,
+            gender = ?,
+            phone = ?,
+            email = ?,
+            medical_notes = ?,
+            emergency_contacts = ?,
+            updated_at = datetime('now')
+           WHERE id = ?`,
+          [
+            firstName,
+            lastName,
+            gender,
+            phoneNumber,
+            email,
+            medicalNotes,
+            contacts,
+            profileId,
+          ]
+        );
+
+        Alert.alert('Profile Updated', 'Your profile has been updated.');
+      } else {
+        const result = await db.executeSql(
+          `INSERT INTO user (
+            first_name,
+            last_name,
+            gender,
+            phone,
+            email,
+            medical_notes,
+            emergency_contacts,
+            created_at,
+            updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+          [
+            firstName,
+            lastName,
+            gender,
+            phoneNumber,
+            email,
+            medicalNotes,
+            contacts,
+          ]
+        );
+
+        setProfileId(result[0].insertId ?? null);
+        setProfileExists(true);
+
+        Alert.alert('Profile Created', 'Your rescue profile is ready.');
+      }
+    } catch (error: any) {
+      console.error('❌ Save error:', error);
+      Alert.alert('Save Error', error?.message ?? 'Unknown error');
+    } finally {
+      setSaving(false);
+    }
   };
 
+  /* -------------------------------------------------------
+     Debug helpers (safe to remove later)
+  -------------------------------------------------------- */
+  const clearDatabase = async () => {
+    Alert.alert('Clear Database', 'Delete all profile data?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          await resetDb();
+          setFirstName('');
+          setLastName('');
+          setGender('');
+          setPhoneNumber('');
+          setEmail('');
+          setMedicalNotes('');
+          setEmergencyContacts([{ name: '', phone: '' }]);
+          setProfileExists(false);
+          setProfileId(null);
+          Alert.alert('Database cleared');
+        },
+      },
+    ]);
+  };
+
+  /* -------------------------------------------------------
+     Loading state
+  -------------------------------------------------------- */
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#2196F3" />
+        <Text>Loading profile…</Text>
+      </View>
+    );
+  }
+
+  /* -------------------------------------------------------
+     UI
+  -------------------------------------------------------- */
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.flexContainer}
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          <Text style={styles.pageTitle}>{t('profilePage.title')}</Text>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>
+          {profileExists ? 'Rescue Profile' : 'Set Up Rescue Profile'}
+        </Text>
 
-          {/* My Details */}
-          <Text style={styles.sectionTitle}>{t('profilePage.myDetails')}</Text>
+        <Input label="First Name *" value={firstName} onChange={setFirstName} />
+        <Input label="Last Name *" value={lastName} onChange={setLastName} />
+        <Input label="Gender" value={gender} onChange={setGender} />
+        <Input label="Phone" value={phoneNumber} onChange={setPhoneNumber} />
+        <Input label="Email" value={email} onChange={setEmail} />
+        <Input
+          label="Medical Notes"
+          value={medicalNotes}
+          onChange={setMedicalNotes}
+          multiline
+        />
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('profilePage.firstName')}</Text>
-            <TextInput
-              style={styles.input}
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder={t('profilePage.placeholder.firstName')}
-              placeholderTextColor="#aaa"
+        <Text style={styles.section}>Emergency Contacts</Text>
+
+        {emergencyContacts.map((c, i) => (
+          <View key={i} style={styles.contact}>
+            <Input
+              label="Name"
+              value={c.name}
+              onChange={v => updateEmergencyContact(i, 'name', v)}
+            />
+            <Input
+              label="Phone"
+              value={c.phone}
+              onChange={v => updateEmergencyContact(i, 'phone', v)}
             />
           </View>
+        ))}
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('profilePage.lastName')}</Text>
-            <TextInput
-              style={styles.input}
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder={t('profilePage.placeholder.lastName')}
-              placeholderTextColor="#aaa"
-            />
-          </View>
+        <TouchableOpacity onPress={addEmergencyContact}>
+          <Text style={styles.link}>+ Add Emergency Contact</Text>
+        </TouchableOpacity>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('profilePage.gender')}</Text>
-            <TextInput
-              style={styles.input}
-              value={gender}
-              onChangeText={setGender}
-              placeholder={t('profilePage.placeholder.gender')}
-              placeholderTextColor="#aaa"
-            />
-          </View>
+        <TouchableOpacity
+          style={[styles.saveButton, saving && styles.disabled]}
+          onPress={saveProfile}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.saveText}>
+              {profileExists ? 'Update Profile' : 'Save Profile'}
+            </Text>
+          )}
+        </TouchableOpacity>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('profilePage.phoneNumber')}</Text>
-            <TextInput
-              style={styles.input}
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder={t('profilePage.placeholder.phoneNumber')}
-              keyboardType="phone-pad"
-              placeholderTextColor="#aaa"
-            />
-          </View>
-
-          {/* Emergency Contacts */}
-          <Text style={[styles.sectionTitle, { marginTop: 32 }]}>
-            {t('profilePage.emergencyContacts')}
-          </Text>
-
-          {emergencyContacts.map((contact, index) => (
-            <View key={index} style={styles.contactCard}>
-              <Text style={styles.contactLabel}>
-                {t('profilePage.person')} {index + 1}
-              </Text>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('profilePage.name')}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={contact.name}
-                  onChangeText={(text) => updateEmergencyContact(index, 'name', text)}
-                  placeholder={t('profilePage.placeholder.name')}
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('profilePage.phoneNumber')}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={contact.phone}
-                  onChangeText={(text) => updateEmergencyContact(index, 'phone', text)}
-                  placeholder={t('profilePage.placeholder.phoneNumber')}
-                  keyboardType="phone-pad"
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-            </View>
-          ))}
-
-          <TouchableOpacity style={styles.addButton} onPress={addEmergencyContact}>
-            <Text style={styles.addButtonText}>+ {t('profilePage.addNewEmergencyContact')}</Text>
-          </TouchableOpacity>
-
-          {/* 送出按鈕 */}
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>{t('profilePage.setUpProfile')}</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={clearDatabase}>
+          <Text style={styles.danger}>Clear Database</Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
+/* -------------------------------------------------------
+   Reusable Input component
+-------------------------------------------------------- */
+const Input = ({
+  label,
+  value,
+  onChange,
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  multiline?: boolean;
+}) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.label}>{label}</Text>
+    <TextInput
+      style={[styles.input, multiline && styles.textArea]}
+      value={value}
+      onChangeText={onChange}
+      multiline={multiline}
+    />
+  </View>
+);
+
+/* -------------------------------------------------------
+   Styles
+-------------------------------------------------------- */
 const styles = StyleSheet.create({
-  flexContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    paddingBottom: 40,
-  },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 6,
-    color: '#333',
-  },
+  flex: { flex: 1 },
+  container: { padding: 20 },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  section: { fontSize: 20, fontWeight: '600', marginVertical: 16 },
+  inputGroup: { marginBottom: 14 },
+  label: { fontSize: 14, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#ccc',
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
   },
-  contactCard: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 16,
+  textArea: { height: 100 },
+  contact: {
     borderWidth: 1,
     borderColor: '#eee',
-  },
-  contactLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#444',
-  },
-  addButton: {
-    alignItems: 'center',
     padding: 12,
-    marginVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
   },
-  addButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  submitButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
+  link: { color: '#2196F3', textAlign: 'center', marginVertical: 10 },
+  saveButton: {
+    backgroundColor: '#4CAF50',
     padding: 16,
+    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 20,
   },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
+  disabled: { backgroundColor: '#aaa' },
+  saveText: { color: 'white', fontSize: 18, fontWeight: '600' },
+  danger: {
+    color: '#F44336',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

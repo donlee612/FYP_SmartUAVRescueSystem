@@ -10,6 +10,7 @@ import ProfilePage from '../pages/ProfilePage';
 interface ContentProps {
   currentPage: number;
   onSelectPage: (page: number) => void;
+  dbInitialized?: boolean;
 }
 
 const Content: React.FC<ContentProps> = ({ currentPage, onSelectPage }) => {

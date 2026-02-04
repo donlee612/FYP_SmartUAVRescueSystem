@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "6416293976",
+    "firebase_url": "https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com",
+    "project_id": "rescue-drone-fyp-e0c23",
+    "storage_bucket": "rescue-drone-fyp-e0c23.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:6416293976:android:c6d2e7399ba0b03f846a2d",
+        "android_client_info": {
+          "package_name": "com.fypproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDM9SI3iRDH3OyO10C1PQWkQdwUJlnUius"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

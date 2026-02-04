@@ -4,19 +4,17 @@ import { useTranslation } from 'react-i18next';
 
 const EventBookingPage = () => {
   const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
-      <Text>{t('eventBookingPage.title')}</Text>
+      <Text style={styles.text}>{t('eventBookingPage.title')}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  text: { fontSize: 20 },
 });
 
 export default EventBookingPage;
