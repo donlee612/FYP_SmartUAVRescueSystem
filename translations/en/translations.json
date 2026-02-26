@@ -3,19 +3,19 @@
     "currentPage": "Current Page"
   },
   "footer": {
-    "mapPage": "Map Page",
-    "sosPage": "SOS Page",
-    "settingPage": "Settings Page"
+    "mapPage": "Map",
+    "sosPage": "SOS",
+    "settingPage": "Settings"
   },
   "mapPage": {
-    "title": "This is Map Page",
+    "title": "Map Home",
     "selectAction": "Select Action",
     "quickStart": "Quick Start",
     "booking": "Booking",
     "cancel": "Cancel"
   },
   "sosPage": {
-    "title": "SOS Emergency",
+    "title": "Emergency SOS",
     "description": "Tap the button below to quickly call emergency number 999",
     "callButton": "CALL 999 NOW",
     "errorTitle": "Unable to Call",
@@ -23,8 +23,8 @@
     "callFailed": "Failed to open dialer. Please try again."
   },
   "settingPage": {
-    "title": "This is Settings Page",
-    "switchLanguage": "Switch to {language}",
+    "title": "Settings",
+    "switchLanguage": "Switch to {{language}}",
     "language": {
       "en": "English",
       "zh": "Chinese"
@@ -32,36 +32,226 @@
     "goToProfile": "Edit My Profile"
   },
   "quickStartPage": {
-    "title": "This is Quick Start Page",
+    "title": "Quick Location Tracking",
+    "subtitle": "Records every 5 seconds",
     "quickStart": "Quick Start",
     "endTracking": "End Tracking",
-    "locationFailed": "Location failed",
-    "startTracking": "Started tracking every 5 minutes",
+    "startTracking": "Started tracking every 5 seconds",
     "trackingEnded": "Tracking ended",
-    "showRoute": "Stopped tracking and showing route"
+    "showRoute": "Stopped tracking and showing route",
+    "status": {
+      "active": "Tracking",
+      "inactive": "Not Tracking"
+    },
+    "session": {
+      "label": "Session ID",
+      "generating": "Generating...",
+      "notStarted": "Not started"
+    },
+    "route": {
+      "label": "Route ID"
+    },
+    "button": {
+      "start": "Start Tracking",
+      "stop": "Stop Tracking"
+    },
+    "map": {
+      "title": "Route Map",
+      "noData": "No route data yet",
+      "waitingForLocation": "Waiting for location...",
+      "promptToStart": "Tap 'Start Tracking' to view map"
+    },
+    "history": {
+      "title": "Recent Records"
+    },
+    "stats": {
+      "points": "Points",
+      "distance": "Distance",
+      "duration": "Duration",
+      "zeroDistance": "0m",
+      "zeroDuration": "0 min",
+      "meters": "{{value}}m",
+      "kilometers": "{{value}}km",
+      "minutes": "{{value}} min"
+    },
+    "firebase": {
+      "uploads": "Uploads",
+      "last": "Last"
+    },
+    "lastUpdate": "Last Update",
+    "permission": {
+      "title": "Location Permission",
+      "message": "This app needs your location permission to track routes.",
+      "neutral": "Ask Me Later",
+      "negative": "Cancel",
+      "positive": "OK"
+    },
+    "alert": {
+      "initFailed": {
+        "title": "Initialization Failed",
+        "message": "Database failed to start. Tracking may not save records."
+      },
+      "permissionDenied": {
+        "title": "Permission Denied",
+        "message": "Location permission denied. Cannot start tracking."
+      },
+      "locationError": {
+        "title": "Location Error",
+        "default": "Unable to get location",
+        "permission": "Location permission denied",
+        "unavailable": "Location service unavailable. Check GPS or network.",
+        "timeout": "Location request timed out"
+      },
+      "trackingStarted": {
+        "title": "Tracking Started",
+        "message": "Session ID: {{sessionId}}\nRecording every 5 seconds"
+      },
+      "trackingStopped": {
+        "title": "Tracking Stopped",
+        "message": "Recorded {{count}} points this session"
+      },
+      "startFailed": {
+        "title": "Start Failed",
+        "message": "Failed to create tracking route"
+      }
+    },
+    "initializing": "Initializing..."
   },
   "eventBookingPage": {
-    "title": "This is Event Booking Page"
+    "title": "Event Booking Management",
+    "subtitle": "Booked Events & Add New Route",
+    "loading": "Loading...",
+    "events": {
+      "title": "Booked Events ({{count}})",
+      "empty": "No booked events yet",
+      "date": "Date",
+      "time": "Time",
+      "waypoints": "Route Points"
+    },
+    "button": {
+      "addNew": "+ Add New Event",
+      "cancelAdd": "Cancel Add",
+      "removeLast": "Remove Last Point",
+      "save": "Save Event to Cloud"
+    },
+    "form": {
+      "titlePlaceholder": "Event Name (e.g. Shatin Rescue Drill)",
+      "date": "Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "map": {
+        "title": "Route Planning (Long press map to add points, {{count}} points added)",
+        "marker": "Point {{index}}"
+      }
+    },
+    "alert": {
+      "loadFailed": {
+        "title": "Error",
+        "message": "Failed to load events from Firebase"
+      },
+      "validation": {
+        "title": "Required",
+        "titleRequired": "Please enter event name",
+        "waypointsRequired": "Please mark at least start and end points on the map"
+      },
+      "saveSuccess": {
+        "title": "Success",
+        "message": "Event added and synced to cloud"
+      },
+      "saveFailed": {
+        "title": "Error",
+        "message": "Failed to save event. Please try again later."
+      }
+    }
   },
   "profilePage": {
-    "title": "MyDrone",
+    "title": {
+      "existing": "My Rescue Profile",
+      "new": "Set Up Rescue Profile"
+    },
+    "loading": "Loading profile...",
     "myDetails": "My Details",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "gender": "Gender / Prefer Not To Say (Leave It Blank)",
-    "phoneNumber": "Phone Number",
-    "emergencyContacts": "Emergency Contacts",
-    "person": "Details of Person",
-    "name": "Name",
-    "addNewEmergencyContact": "Add New Emergency Contact",
-    "setUpProfile": "Set Up Profile",
-    "profileSaved": "Profile saved!",
-    "placeholder": {
-      "firstName": "Enter your first name",
-      "lastName": "Enter your last name",
-      "gender": "Leave blank if prefer not to say",
-      "phoneNumber": "e.g. +852 9123 4567",
-      "name": "Contact name"
-    }
+    "form": {
+      "firstName": {
+        "label": "First Name *"
+      },
+      "lastName": {
+        "label": "Last Name *"
+      },
+      "gender": {
+        "label": "Gender / Prefer Not to Say (Leave Blank)"
+      },
+      "phone": {
+        "label": "Phone Number"
+      },
+      "email": {
+        "label": "Email"
+      },
+      "medicalNotes": {
+        "label": "Medical Notes"
+      },
+      "placeholder": {
+        "firstName": "Enter your first name",
+        "lastName": "Enter your last name",
+        "gender": "Leave blank if prefer not to say",
+        "phoneNumber": "e.g. +852 9123 4567",
+        "name": "Contact Name"
+      }
+    },
+    "emergencyContacts": {
+      "title": "Emergency Contacts",
+      "person": "Contact Person",
+      "name": "Name",
+      "phone": "Phone",
+      "addButton": "Add New Emergency Contact"
+    },
+    "button": {
+      "save": "Save Profile",
+      "update": "Update Profile",
+      "cancel": "Cancel",
+      "clear": "Clear",
+      "clearDatabase": "Clear Database"
+    },
+    "alert": {
+      "loadFailed": {
+        "title": "Load Failed",
+        "message": "Unable to load profile. Please try again later."
+      },
+      "validation": {
+        "title": "Required Fields",
+        "nameRequired": "First and last name are required"
+      },
+      "updateSuccess": {
+        "title": "Profile Updated",
+        "message": "Your profile has been successfully updated"
+      },
+      "createSuccess": {
+        "title": "Profile Created",
+        "message": "Your rescue profile is now ready"
+      },
+      "saveFailed": {
+        "title": "Save Failed",
+        "message": "Unable to save profile. Please try again later."
+      },
+      "clearDatabase": {
+        "title": "Clear Database",
+        "message": "Are you sure you want to delete all profile data?"
+      },
+      "clearSuccess": {
+        "title": "Database Cleared"
+      },
+      "clearFailed": {
+        "title": "Clear Failed",
+        "message": "Unable to clear database"
+      }
+    },
+    "profileSaved": "Profile saved!"
+    },"pages": {
+    "map": "Map",
+    "sos": "SOS",
+    "settings": "Settings",
+    "quickStart": "Quick Track",
+    "booking": "Booking",
+    "profile": "Profile"
   }
 }

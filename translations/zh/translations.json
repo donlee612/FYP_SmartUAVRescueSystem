@@ -3,15 +3,15 @@
     "currentPage": "當前頁面"
   },
   "footer": {
-    "mapPage": "地圖頁",
-    "sosPage": "SOS頁",
-    "settingPage": "設置頁"
+    "mapPage": "地圖",
+    "sosPage": "SOS",
+    "settingPage": "設置"
   },
   "mapPage": {
-    "title": "這是MapPage",
+    "title": "地圖首頁",
     "selectAction": "選擇操作",
     "quickStart": "快速開始",
-    "booking": "預約",
+    "booking": "行程預約",
     "cancel": "取消"
   },
   "sosPage": {
@@ -23,8 +23,8 @@
     "callFailed": "無法開啟撥號介面，請稍後再試"
   },
   "settingPage": {
-    "title": "這是SettingPage",
-    "switchLanguage": "切換到{language}",
+    "title": "設定",
+    "switchLanguage": "切換到{{language}}",
     "language": {
       "en": "英文",
       "zh": "中文"
@@ -32,36 +32,227 @@
     "goToProfile": "設定我的個人資料"
   },
   "quickStartPage": {
-    "title": "這是QuickStartPage",
+    "title": "快速定位追蹤",
+    "subtitle": "每 5 秒記錄一次",
     "quickStart": "快速開始",
     "endTracking": "結束追蹤",
-    "locationFailed": "定位失敗",
-    "startTracking": "已開始每5分鐘記錄定位",
+    "startTracking": "已開始每 5 秒記錄定位",
     "trackingEnded": "追蹤已結束",
-    "showRoute": "已停止記錄並顯示路線"
+    "showRoute": "已停止記錄並顯示路線",
+    "status": {
+      "active": "追蹤中",
+      "inactive": "未追蹤"
+    },
+    "session": {
+      "label": "Session ID",
+      "generating": "產生中...",
+      "notStarted": "尚未開始"
+    },
+    "route": {
+      "label": "路線 ID"
+    },
+    "button": {
+      "start": "開始追蹤",
+      "stop": "停止追蹤"
+    },
+    "map": {
+      "title": "路線地圖",
+      "noData": "尚無路線資料",
+      "waitingForLocation": "等待定位資料...",
+      "promptToStart": "點擊「開始追蹤」以查看地圖"
+    },
+    "history": {
+      "title": "最近記錄"
+    },
+    "stats": {
+      "points": "點數",
+      "distance": "距離",
+      "duration": "時長",
+      "zeroDistance": "0m",
+      "zeroDuration": "0 分",
+      "meters": "{{value}}m",
+      "kilometers": "{{value}}km",
+      "minutes": "{{value}} 分"
+    },
+    "firebase": {
+      "uploads": "上傳次數",
+      "last": "最近"
+    },
+    "lastUpdate": "最後更新",
+    "permission": {
+      "title": "位置權限",
+      "message": "此應用需要您的位置權限來追蹤路線。",
+      "neutral": "稍後詢問",
+      "negative": "取消",
+      "positive": "確定"
+    },
+    "alert": {
+      "initFailed": {
+        "title": "初始化失敗",
+        "message": "資料庫無法啟動，追蹤記錄可能無法儲存"
+      },
+      "permissionDenied": {
+        "title": "權限被拒絕",
+        "message": "位置權限被拒絕，無法開始追蹤"
+      },
+      "locationError": {
+        "title": "位置錯誤",
+        "default": "無法取得位置",
+        "permission": "位置權限被拒絕",
+        "unavailable": "位置服務不可用，請檢查 GPS 或網路",
+        "timeout": "定位請求超時"
+      },
+      "trackingStarted": {
+        "title": "開始追蹤",
+        "message": "Session ID: {{sessionId}}\n每 5 秒記錄一次位置"
+      },
+      "trackingStopped": {
+        "title": "追蹤結束",
+        "message": "本次共記錄 {{count}} 個點"
+      },
+      "startFailed": {
+        "title": "啟動失敗",
+        "message": "無法建立追蹤路線"
+      }
+    },
+    "initializing": "正在初始化..."
   },
   "eventBookingPage": {
-    "title": "這是EventBookingPage"
+    "title": "行程預約管理",
+    "subtitle": "已預訂行程與新增路線規劃",
+    "loading": "載入中...",
+    "events": {
+      "title": "已預訂行程 ({{count}})",
+      "empty": "尚未有任何預訂行程",
+      "date": "日期",
+      "time": "時間",
+      "waypoints": "路線點數"
+    },
+    "button": {
+      "addNew": "＋ 新增行程",
+      "cancelAdd": "取消新增",
+      "removeLast": "移除最後一個點",
+      "save": "儲存行程至雲端"
+    },
+    "form": {
+      "titlePlaceholder": "行程名稱（例如：沙田救援演練）",
+      "date": "日期",
+      "startTime": "開始時間",
+      "endTime": "結束時間",
+      "map": {
+        "title": "路線規劃（長按地圖新增點，已有 {{count}} 個點）",
+        "marker": "點 {{index}}"
+      }
+    },
+    "alert": {
+      "loadFailed": {
+        "title": "錯誤",
+        "message": "無法從 Firebase 載入行程"
+      },
+      "validation": {
+        "title": "提示",
+        "titleRequired": "請輸入行程名稱",
+        "waypointsRequired": "請至少在地圖上標記起點與終點"
+      },
+      "saveSuccess": {
+        "title": "成功",
+        "message": "行程已新增並同步到雲端"
+      },
+      "saveFailed": {
+        "title": "錯誤",
+        "message": "無法儲存行程，請稍後再試"
+      }
+    }
   },
   "profilePage": {
-    "title": "MyDrone",
+    "title": {
+      "existing": "我的救援個人檔案",
+      "new": "設定救援個人檔案"
+    },
+    "loading": "載入個人檔案中…",
     "myDetails": "我的資料",
-    "firstName": "名字",
-    "lastName": "姓氏",
-    "gender": "性別 / 不願透露（可留空）",
-    "phoneNumber": "電話號碼",
-    "emergencyContacts": "緊急聯絡人",
-    "person": "聯絡人",
-    "name": "姓名",
-    "addNewEmergencyContact": "新增緊急聯絡人",
-    "setUpProfile": "設定個人資料",
-    "profileSaved": "個人資料已儲存！",
-    "placeholder": {
-      "firstName": "請輸入你的名字",
-      "lastName": "請輸入你的姓氏",
-      "gender": "不願透露可留空",
-      "phoneNumber": "例如：+852 9123 4567",
-      "name": "聯絡人姓名"
-    }
+    "form": {
+      "firstName": {
+        "label": "名字 *"
+      },
+      "lastName": {
+        "label": "姓氏 *"
+      },
+      "gender": {
+        "label": "性別 / 不願透露（可留空）"
+      },
+      "phone": {
+        "label": "電話號碼"
+      },
+      "email": {
+        "label": "電子郵件"
+      },
+      "medicalNotes": {
+        "label": "醫療備註"
+      },
+      "placeholder": {
+        "firstName": "請輸入你的名字",
+        "lastName": "請輸入你的姓氏",
+        "gender": "不願透露可留空",
+        "phoneNumber": "例如：+852 9123 4567",
+        "name": "聯絡人姓名"
+      }
+    },
+    "emergencyContacts": {
+      "title": "緊急聯絡人",
+      "person": "聯絡人",
+      "name": "姓名",
+      "phone": "電話",
+      "addButton": "新增緊急聯絡人"
+    },
+    "button": {
+      "save": "儲存個人資料",
+      "update": "更新個人資料",
+      "cancel": "取消",
+      "clear": "清除",
+      "clearDatabase": "清除資料庫"
+    },
+    "alert": {
+      "loadFailed": {
+        "title": "載入失敗",
+        "message": "無法載入個人檔案，請稍後再試"
+      },
+      "validation": {
+        "title": "必填欄位",
+        "nameRequired": "名字與姓氏為必填"
+      },
+      "updateSuccess": {
+        "title": "個人檔案已更新",
+        "message": "您的個人檔案已成功更新"
+      },
+      "createSuccess": {
+        "title": "個人檔案已建立",
+        "message": "您的救援個人檔案已準備好"
+      },
+      "saveFailed": {
+        "title": "儲存失敗",
+        "message": "無法儲存個人檔案，請稍後再試"
+      },
+      "clearDatabase": {
+        "title": "清除資料庫",
+        "message": "確定要刪除所有個人檔案資料？"
+      },
+      "clearSuccess": {
+        "title": "資料庫已清除"
+      },
+      "clearFailed": {
+        "title": "清除失敗",
+        "message": "無法清除資料庫"
+      }
+    },
+    "profileSaved": "個人資料已儲存！"
+    },
+    "pages": {
+    "map": "地圖",
+    "sos": "緊急求救",
+    "settings": "設置",
+    "quickStart": "快速追蹤",
+    "booking": "行程預約",
+    "profile": "個人檔案"
   }
 }

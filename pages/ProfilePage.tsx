@@ -43,9 +43,6 @@ const ProfilePage = () => {
   const [profileExists, setProfileExists] = useState(false);
   const [profileId, setProfileId] = useState<number | null>(null);
 
-  /* -------------------------------------------------------
-     Load profile on mount
-  -------------------------------------------------------- */
   useEffect(() => {
     loadProfile();
   }, []);
@@ -83,14 +80,15 @@ const ProfilePage = () => {
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      Alert.alert(
+        t('profilePage.alert.loadFailed.title'),
+        t('profilePage.alert.loadFailed.message')
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  /* -------------------------------------------------------
-     Emergency contacts helpers
-  -------------------------------------------------------- */
   const addEmergencyContact = () => {
     setEmergencyContacts([...emergencyContacts, { name: '', phone: '' }]);
   };
@@ -105,12 +103,12 @@ const ProfilePage = () => {
     setEmergencyContacts(updated);
   };
 
-  /* -------------------------------------------------------
-     Save profile (insert or update)
-  -------------------------------------------------------- */
   const saveProfile = async () => {
     if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert('Required Fields', 'First and last name are required.');
+      Alert.alert(
+        t('profilePage.alert.validation.title'),
+        t('profilePage.alert.validation.nameRequired')
+      );
       return;
     }
 
@@ -121,7 +119,7 @@ const ProfilePage = () => {
       const db = getDb();
 
       const contacts = JSON.stringify(
-        emergencyContacts.filter(c => c.name || c.phone)
+        emergencyContacts.filter(c => c.name.trim() || c.phone.trim())
       );
 
       if (profileExists && profileId) {
@@ -148,7 +146,10 @@ const ProfilePage = () => {
           ]
         );
 
-        Alert.alert('Profile Updated', 'Your profile has been updated.');
+        Alert.alert(
+          t('profilePage.alert.updateSuccess.title'),
+          t('profilePage.alert.updateSuccess.message')
+        );
       } else {
         const result = await db.executeSql(
           `INSERT INTO user (
@@ -176,57 +177,65 @@ const ProfilePage = () => {
         setProfileId(result[0].insertId ?? null);
         setProfileExists(true);
 
-        Alert.alert('Profile Created', 'Your rescue profile is ready.');
+        Alert.alert(
+          t('profilePage.alert.createSuccess.title'),
+          t('profilePage.alert.createSuccess.message')
+        );
       }
     } catch (error: any) {
       console.error('❌ Save error:', error);
-      Alert.alert('Save Error', error?.message ?? 'Unknown error');
+      Alert.alert(
+        t('profilePage.alert.saveFailed.title'),
+        error?.message || t('profilePage.alert.saveFailed.message')
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  /* -------------------------------------------------------
-     Debug helpers (safe to remove later)
-  -------------------------------------------------------- */
   const clearDatabase = async () => {
-    Alert.alert('Clear Database', 'Delete all profile data?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          await resetDb();
-          setFirstName('');
-          setLastName('');
-          setGender('');
-          setPhoneNumber('');
-          setEmail('');
-          setMedicalNotes('');
-          setEmergencyContacts([{ name: '', phone: '' }]);
-          setProfileExists(false);
-          setProfileId(null);
-          Alert.alert('Database cleared');
+    Alert.alert(
+      t('profilePage.alert.clearDatabase.title'),
+      t('profilePage.alert.clearDatabase.message'),
+      [
+        { text: t('profilePage.button.cancel'), style: 'cancel' },
+        {
+          text: t('profilePage.button.clear'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await resetDb();
+              setFirstName('');
+              setLastName('');
+              setGender('');
+              setPhoneNumber('');
+              setEmail('');
+              setMedicalNotes('');
+              setEmergencyContacts([{ name: '', phone: '' }]);
+              setProfileExists(false);
+              setProfileId(null);
+              Alert.alert(t('profilePage.alert.clearSuccess.title'));
+            } catch (err) {
+              Alert.alert(
+                t('profilePage.alert.clearFailed.title'),
+                t('profilePage.alert.clearFailed.message')
+              );
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  /* -------------------------------------------------------
-     Loading state
-  -------------------------------------------------------- */
   if (loading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#2196F3" />
-        <Text>Loading profile…</Text>
+        <Text>{t('profilePage.loading')}</Text>
       </View>
     );
   }
 
-  /* -------------------------------------------------------
-     UI
-  -------------------------------------------------------- */
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -234,32 +243,56 @@ const ProfilePage = () => {
     >
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>
-          {profileExists ? 'Rescue Profile' : 'Set Up Rescue Profile'}
+          {profileExists
+            ? t('profilePage.title.existing')
+            : t('profilePage.title.new')}
         </Text>
 
-        <Input label="First Name *" value={firstName} onChange={setFirstName} />
-        <Input label="Last Name *" value={lastName} onChange={setLastName} />
-        <Input label="Gender" value={gender} onChange={setGender} />
-        <Input label="Phone" value={phoneNumber} onChange={setPhoneNumber} />
-        <Input label="Email" value={email} onChange={setEmail} />
         <Input
-          label="Medical Notes"
+          label={t('profilePage.form.firstName.label')}
+          value={firstName}
+          onChange={setFirstName}
+          required
+        />
+        <Input
+          label={t('profilePage.form.lastName.label')}
+          value={lastName}
+          onChange={setLastName}
+          required
+        />
+        <Input
+          label={t('profilePage.form.gender.label')}
+          value={gender}
+          onChange={setGender}
+        />
+        <Input
+          label={t('profilePage.form.phone.label')}
+          value={phoneNumber}
+          onChange={setPhoneNumber}
+        />
+        <Input
+          label={t('profilePage.form.email.label')}
+          value={email}
+          onChange={setEmail}
+        />
+        <Input
+          label={t('profilePage.form.medicalNotes.label')}
           value={medicalNotes}
           onChange={setMedicalNotes}
           multiline
         />
 
-        <Text style={styles.section}>Emergency Contacts</Text>
+        <Text style={styles.section}>{t('profilePage.emergencyContacts.title')}</Text>
 
         {emergencyContacts.map((c, i) => (
           <View key={i} style={styles.contact}>
             <Input
-              label="Name"
+              label={t('profilePage.emergencyContacts.name')}
               value={c.name}
               onChange={v => updateEmergencyContact(i, 'name', v)}
             />
             <Input
-              label="Phone"
+              label={t('profilePage.emergencyContacts.phone')}
               value={c.phone}
               onChange={v => updateEmergencyContact(i, 'phone', v)}
             />
@@ -267,7 +300,9 @@ const ProfilePage = () => {
         ))}
 
         <TouchableOpacity onPress={addEmergencyContact}>
-          <Text style={styles.link}>+ Add Emergency Contact</Text>
+          <Text style={styles.link}>
+            {t('profilePage.emergencyContacts.addButton')}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -279,13 +314,17 @@ const ProfilePage = () => {
             <ActivityIndicator color="white" />
           ) : (
             <Text style={styles.saveText}>
-              {profileExists ? 'Update Profile' : 'Save Profile'}
+              {profileExists
+                ? t('profilePage.button.update')
+                : t('profilePage.button.save')}
             </Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={clearDatabase}>
-          <Text style={styles.danger}>Clear Database</Text>
+          <Text style={styles.danger}>
+            {t('profilePage.button.clearDatabase')}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -293,21 +332,26 @@ const ProfilePage = () => {
 };
 
 /* -------------------------------------------------------
-   Reusable Input component
+   Reusable Input component (加 required 星號)
 -------------------------------------------------------- */
 const Input = ({
   label,
   value,
   onChange,
   multiline = false,
+  required = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   multiline?: boolean;
+  required?: boolean;
 }) => (
   <View style={styles.inputGroup}>
-    <Text style={styles.label}>{label}</Text>
+    <Text style={styles.label}>
+      {label}
+      {required && <Text style={styles.required}> *</Text>}
+    </Text>
     <TextInput
       style={[styles.input, multiline && styles.textArea]}
       value={value}
@@ -318,7 +362,7 @@ const Input = ({
 );
 
 /* -------------------------------------------------------
-   Styles
+   Styles (略微調整 required 星號顏色)
 -------------------------------------------------------- */
 const styles = StyleSheet.create({
   flex: { flex: 1 },
@@ -328,6 +372,7 @@ const styles = StyleSheet.create({
   section: { fontSize: 20, fontWeight: '600', marginVertical: 16 },
   inputGroup: { marginBottom: 14 },
   label: { fontSize: 14, marginBottom: 6 },
+  required: { color: '#F44336' },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',

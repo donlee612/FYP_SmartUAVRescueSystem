@@ -36,7 +36,9 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header />
+      {/* 改這裡：把 currentPage 傳給 Header */}
+      <Header currentPage={currentPage} />
+      
       {dbInitialized && (
         <Content
           currentPage={currentPage}
