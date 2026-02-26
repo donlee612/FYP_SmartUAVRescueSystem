@@ -16,11 +16,17 @@
   },
   "sosPage": {
     "title": "Emergency SOS",
-    "description": "Tap the button below to quickly call emergency number 999",
-    "callButton": "CALL 999 NOW",
-    "errorTitle": "Unable to Call",
+    "legalWarning": "Anyone Who Abuses This Emergency Service May Incurr Legal Liabilities",
+    "confirmText": "Please confirm this is a real emergency.\nUpon clicking the SOS button, the 999 Report Centre may contact you.",
+    "sosButton": "SOS",
+    "callButton": "Call 999 Now",
+    "successTitle": "Success",
+    "successMessage": "Rescue signal sent!",
+    "errorTitle": "Error",
+    "requestFailed": "Failed to send rescue signal. Please try again.",
+    "callFailed": "Failed to open dialer. Please try again.",
     "noPhoneApp": "No phone app available on this device",
-    "callFailed": "Failed to open dialer. Please try again."
+    "slogan": "Help is just a Ping Away"
   },
   "settingPage": {
     "title": "Settings",

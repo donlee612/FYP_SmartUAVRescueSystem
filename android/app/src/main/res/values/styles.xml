@@ -13,10 +13,9 @@
     <!-- Splash Screen 專用主題（只在啟動時使用） -->
     <style name="AppTheme.Launch" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@drawable/splash_background</item>
-        <item name="android:statusBarColor">#FFFFFF</item> <!-- 與背景色一致 -->
-        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowFullscreen">false</item> <!-- 可改 true 做全螢幕 -->
     </style>
 
 </resources>

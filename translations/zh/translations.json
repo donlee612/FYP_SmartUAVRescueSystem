@@ -16,11 +16,17 @@
   },
   "sosPage": {
     "title": "緊急求救",
-    "description": "點擊下方按鈕可快速撥打緊急號碼 999",
+    "legalWarning": "任何人濫用此緊急服務可能會承擔法律責任",
+    "confirmText": "請確認這是真正的緊急情況。\n點擊 SOS 按鈕後，999 報案中心可能會聯絡您。",
+    "sosButton": "SOS",
     "callButton": "立即撥打 999",
-    "errorTitle": "無法撥打",
-    "noPhoneApp": "此裝置上沒有電話應用程式",
-    "callFailed": "無法開啟撥號介面，請稍後再試"
+    "successTitle": "成功",
+    "successMessage": "求救訊號已發送！",
+    "errorTitle": "錯誤",
+    "requestFailed": "無法發送求救訊號，請稍後再試。",
+    "callFailed": "無法開啟撥號，請稍後再試。",
+    "noPhoneApp": "此裝置沒有電話應用程式",
+    "slogan": "Help is just a Ping Away"
   },
   "settingPage": {
     "title": "設定",

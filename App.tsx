@@ -35,10 +35,8 @@ const App = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* 改這裡：把 currentPage 傳給 Header */}
+    <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
       <Header currentPage={currentPage} />
-      
       {dbInitialized && (
         <Content
           currentPage={currentPage}
