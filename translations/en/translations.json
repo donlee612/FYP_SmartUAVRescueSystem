@@ -175,84 +175,59 @@
       "existing": "My Rescue Profile",
       "new": "Set Up Rescue Profile"
     },
-    "loading": "Loading profile...",
-    "myDetails": "My Details",
+    "loading": "Loading profile…",
     "form": {
       "firstName": {
         "label": "First Name *"
       },
       "lastName": {
-        "label": "Last Name *"
+        "label": "Last Name"
       },
       "gender": {
         "label": "Gender / Prefer Not to Say (Leave Blank)"
       },
       "phone": {
-        "label": "Phone Number"
+        "label": "Phone Number *"
       },
       "email": {
         "label": "Email"
       },
       "medicalNotes": {
         "label": "Medical Notes"
-      },
-      "placeholder": {
-        "firstName": "Enter your first name",
-        "lastName": "Enter your last name",
-        "gender": "Leave blank if prefer not to say",
-        "phoneNumber": "e.g. +852 9123 4567",
-        "name": "Contact Name"
       }
     },
     "emergencyContacts": {
       "title": "Emergency Contacts",
-      "person": "Contact Person",
       "name": "Name",
       "phone": "Phone",
-      "addButton": "Add New Emergency Contact"
+      "addButton": "+ Add Emergency Contact"
     },
     "button": {
       "save": "Save Profile",
       "update": "Update Profile",
-      "cancel": "Cancel",
-      "clear": "Clear",
-      "clearDatabase": "Clear Database"
+      "cancel": "Cancel"
     },
     "alert": {
-      "loadFailed": {
-        "title": "Load Failed",
-        "message": "Unable to load profile. Please try again later."
-      },
       "validation": {
         "title": "Required Fields",
-        "nameRequired": "First and last name are required"
+        "requiredFields": "First name and phone number are required",
+        "nameRequired": "First name is required"
       },
-      "updateSuccess": {
-        "title": "Profile Updated",
-        "message": "Your profile has been successfully updated"
+      "loadFailed": {
+        "title": "Load Failed",
+        "message": "Unable to load profile from cloud. Please check your network."
       },
-      "createSuccess": {
-        "title": "Profile Created",
-        "message": "Your rescue profile is now ready"
+      "saveSuccess": {
+        "title": "Save Successful",
+        "message": "Profile uploaded to cloud successfully"
       },
       "saveFailed": {
         "title": "Save Failed",
-        "message": "Unable to save profile. Please try again later."
-      },
-      "clearDatabase": {
-        "title": "Clear Database",
-        "message": "Are you sure you want to delete all profile data?"
-      },
-      "clearSuccess": {
-        "title": "Database Cleared"
-      },
-      "clearFailed": {
-        "title": "Clear Failed",
-        "message": "Unable to clear database"
+        "message": "Failed to upload profile. Please check network or phone number format."
       }
-    },
-    "profileSaved": "Profile saved!"
-    },"pages": {
+    }
+  },
+  "pages": {
     "map": "Map",
     "sos": "SOS",
     "settings": "Settings",

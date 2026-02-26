@@ -43,6 +43,11 @@ const ProfilePage = () => {
   const [profileExists, setProfileExists] = useState(false);
   const [profileId, setProfileId] = useState<number | null>(null);
 
+  // 正規化電話號碼作為 Firebase key（只保留數字）
+  const normalizePhoneForKey = (phone: string) => {
+    return phone.replace(/[^0-9]/g, ''); // e.g. +852-9123 4567 → 85291234567
+  };
+
   useEffect(() => {
     loadProfile();
   }, []);
@@ -53,29 +58,98 @@ const ProfilePage = () => {
       await initDb();
       const db = getDb();
 
+      // 1. 先從本地 SQLite 載入（快速、離線可用）
       const result = await db.executeSql(
         'SELECT * FROM user ORDER BY id DESC LIMIT 1'
       );
 
+      let localData = null;
       if (result[0].rows.length > 0) {
-        const user = result[0].rows.item(0);
+        localData = result[0].rows.item(0);
 
-        setFirstName(user.first_name || '');
-        setLastName(user.last_name || '');
-        setGender(user.gender || '');
-        setPhoneNumber(user.phone || '');
-        setEmail(user.email || '');
-        setMedicalNotes(user.medical_notes || '');
-        setProfileId(user.id);
+        setFirstName(localData.first_name || '');
+        setLastName(localData.last_name || '');
+        setGender(localData.gender || '');
+        setPhoneNumber(localData.phone || '');
+        setEmail(localData.email || '');
+        setMedicalNotes(localData.medical_notes || '');
+        setProfileId(localData.id);
         setProfileExists(true);
 
-        if (user.emergency_contacts) {
+        // 處理 emergency_contacts（防呆）
+        let parsedContacts: EmergencyContact[] = [{ name: '', phone: '' }];
+        if (localData.emergency_contacts) {
           try {
-            const parsed = JSON.parse(user.emergency_contacts);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setEmergencyContacts(parsed);
+            const parsed = JSON.parse(localData.emergency_contacts);
+            if (Array.isArray(parsed)) {
+              parsedContacts = parsed.filter(
+                c => typeof c === 'object' && c !== null && ('name' in c || 'phone' in c)
+              );
             }
-          } catch {}
+          } catch (parseErr) {
+            console.warn('Invalid emergency_contacts JSON in local DB:', parseErr);
+          }
+        }
+        setEmergencyContacts(parsedContacts.length > 0 ? parsedContacts : [{ name: '', phone: '' }]);
+      } else {
+        setProfileExists(false);
+        setEmergencyContacts([{ name: '', phone: '' }]);
+      }
+
+      // 2. 背景從 Firebase 同步最新資料（如果有更新的話）
+      if (localData?.phone) {
+        const normalizedPhone = normalizePhoneForKey(localData.phone);
+        try {
+          const fbResponse = await fetch(
+            `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/profile.json`
+          );
+          const fbData = await fbResponse.json();
+
+          if (fbData && fbData.updated_at > (localData.updated_at || '1970-01-01T00:00:00Z')) {
+            // 雲端較新 → 覆蓋顯示
+            setFirstName(fbData.first_name || localData.first_name || '');
+            setLastName(fbData.last_name || localData.last_name || '');
+            setGender(fbData.gender || localData.gender || '');
+            setPhoneNumber(fbData.phone || localData.phone || '');
+            setEmail(fbData.email || localData.email || '');
+            setMedicalNotes(fbData.medical_notes || localData.medical_notes || '');
+
+            // 同步緊急聯絡人
+            let fbContacts = [{ name: '', phone: '' }];
+            if (Array.isArray(fbData.emergency_contacts)) {
+              fbContacts = fbData.emergency_contacts;
+            }
+            setEmergencyContacts(fbContacts.length > 0 ? fbContacts : [{ name: '', phone: '' }]);
+
+            // 可選：更新本地 SQLite 以保持一致
+            await db.executeSql(
+              `UPDATE user SET
+                first_name = ?,
+                last_name = ?,
+                gender = ?,
+                phone = ?,
+                email = ?,
+                medical_notes = ?,
+                emergency_contacts = ?,
+                updated_at = datetime('now')
+               WHERE id = ?`,
+              [
+                fbData.first_name || localData.first_name,
+                fbData.last_name || localData.last_name,
+                fbData.gender || localData.gender,
+                fbData.phone || localData.phone,
+                fbData.email || localData.email,
+                fbData.medical_notes || localData.medical_notes,
+                JSON.stringify(fbContacts),
+                localData.id,
+              ]
+            );
+
+            Alert.alert('已同步', '從雲端載入最新資料');
+          }
+        } catch (fbError) {
+          console.warn('Firebase sync failed:', fbError);
+          // 不影響本地使用
         }
       }
     } catch (error) {
@@ -84,6 +158,8 @@ const ProfilePage = () => {
         t('profilePage.alert.loadFailed.title'),
         t('profilePage.alert.loadFailed.message')
       );
+      // 錯誤時強制重設緊急聯絡人，避免 map 錯誤
+      setEmergencyContacts([{ name: '', phone: '' }]);
     } finally {
       setLoading(false);
     }
@@ -104,25 +180,40 @@ const ProfilePage = () => {
   };
 
   const saveProfile = async () => {
-    if (!firstName.trim() || !lastName.trim()) {
+    // 驗證必填：名字 + 電話
+    if (!firstName.trim() || !phoneNumber.trim()) {
       Alert.alert(
         t('profilePage.alert.validation.title'),
-        t('profilePage.alert.validation.nameRequired')
+        t('profilePage.alert.validation.requiredFields') || '名字與電話號碼為必填'
       );
       return;
     }
 
     setSaving(true);
 
+    const normalizedPhone = normalizePhoneForKey(phoneNumber);
+
+    const contacts = JSON.stringify(
+      emergencyContacts.filter(c => c.name.trim() || c.phone.trim())
+    );
+
+    const profileData = {
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      gender: gender.trim(),
+      phone: phoneNumber.trim(),
+      email: email.trim(),
+      medical_notes: medicalNotes.trim(),
+      emergency_contacts: contacts,
+      updated_at: new Date().toISOString(),
+    };
+
     try {
       await initDb();
       const db = getDb();
 
-      const contacts = JSON.stringify(
-        emergencyContacts.filter(c => c.name.trim() || c.phone.trim())
-      );
-
       if (profileExists && profileId) {
+        // 更新本地 SQLite
         await db.executeSql(
           `UPDATE user SET
             first_name = ?,
@@ -135,22 +226,18 @@ const ProfilePage = () => {
             updated_at = datetime('now')
            WHERE id = ?`,
           [
-            firstName,
-            lastName,
-            gender,
-            phoneNumber,
-            email,
-            medicalNotes,
-            contacts,
+            profileData.first_name,
+            profileData.last_name,
+            profileData.gender,
+            profileData.phone,
+            profileData.email,
+            profileData.medical_notes,
+            profileData.emergency_contacts,
             profileId,
           ]
         );
-
-        Alert.alert(
-          t('profilePage.alert.updateSuccess.title'),
-          t('profilePage.alert.updateSuccess.message')
-        );
       } else {
+        // 新增本地 SQLite
         const result = await db.executeSql(
           `INSERT INTO user (
             first_name,
@@ -164,24 +251,39 @@ const ProfilePage = () => {
             updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
           [
-            firstName,
-            lastName,
-            gender,
-            phoneNumber,
-            email,
-            medicalNotes,
-            contacts,
+            profileData.first_name,
+            profileData.last_name,
+            profileData.gender,
+            profileData.phone,
+            profileData.email,
+            profileData.medical_notes,
+            profileData.emergency_contacts,
           ]
         );
 
         setProfileId(result[0].insertId ?? null);
         setProfileExists(true);
-
-        Alert.alert(
-          t('profilePage.alert.createSuccess.title'),
-          t('profilePage.alert.createSuccess.message')
-        );
       }
+
+      // 同步上傳到 Firebase
+      const fbResponse = await fetch(
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/profile.json`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profileData),
+        }
+      );
+
+      if (!fbResponse.ok) {
+        console.warn('Firebase sync failed, but local saved');
+        Alert.alert('警告', '本地儲存成功，但雲端同步失敗，請檢查網路');
+      }
+
+      Alert.alert(
+        t('profilePage.alert.saveSuccess.title'),
+        t('profilePage.alert.saveSuccess.message')
+      );
     } catch (error: any) {
       console.error('❌ Save error:', error);
       Alert.alert(
@@ -249,7 +351,14 @@ const ProfilePage = () => {
         </Text>
 
         <Input
-          label={t('profilePage.form.firstName.label')}
+          label={t('profilePage.form.phone.label') + ' *'}
+          value={phoneNumber}
+          onChange={setPhoneNumber}
+          required
+        />
+
+        <Input
+          label={t('profilePage.form.firstName.label') + ' *'}
           value={firstName}
           onChange={setFirstName}
           required
@@ -258,17 +367,11 @@ const ProfilePage = () => {
           label={t('profilePage.form.lastName.label')}
           value={lastName}
           onChange={setLastName}
-          required
         />
         <Input
           label={t('profilePage.form.gender.label')}
           value={gender}
           onChange={setGender}
-        />
-        <Input
-          label={t('profilePage.form.phone.label')}
-          value={phoneNumber}
-          onChange={setPhoneNumber}
         />
         <Input
           label={t('profilePage.form.email.label')}
@@ -331,9 +434,7 @@ const ProfilePage = () => {
   );
 };
 
-/* -------------------------------------------------------
-   Reusable Input component (加 required 星號)
--------------------------------------------------------- */
+// Input 元件（保持不變）
 const Input = ({
   label,
   value,

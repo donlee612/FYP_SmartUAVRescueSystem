@@ -14,7 +14,7 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import { initDb, getDb } from '../services/db/initDb';
 
 // ────────────────────────────────────────────────
-// SQLite Helper - 已調整接受 null 值
+// SQLite Helper（保持不變）
 // ────────────────────────────────────────────────
 class LocationTrackerDB {
   static async addLocation(
@@ -93,6 +93,8 @@ const QuickStartPage = () => {
 
   const [locations, setLocations] = useState<{ lat: number; lng: number; timestamp: string }[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const currentSessionRef = useRef<string | null>(null);
+  const currentPointCounter = useRef(1);
   const [tracking, setTracking] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<{ id: number; name: string; sessionId: string } | null>(null);
   const [stats, setStats] = useState({ totalPoints: 0, distance: '0m', sessionDuration: '0 min' });
@@ -102,7 +104,7 @@ const QuickStartPage = () => {
   const [firebaseUploadCount, setFirebaseUploadCount] = useState(0);
   const [lastFirebaseUpload, setLastFirebaseUpload] = useState<string>('');
 
-  const UPDATE_INTERVAL = 5000; // 5 seconds
+  const UPDATE_INTERVAL = 5000;
 
   // 初始化資料庫
   useEffect(() => {
@@ -116,7 +118,7 @@ const QuickStartPage = () => {
           t('quickStartPage.alert.initFailed.title'),
           t('quickStartPage.alert.initFailed.message')
         );
-        setAppReady(true); // 還是讓畫面能用
+        setAppReady(true);
       }
     };
 
@@ -127,6 +129,9 @@ const QuickStartPage = () => {
     };
   }, []);
 
+  // ────────────────────────────────────────────────
+  // 工具函式（全部定義在這裡）
+  // ────────────────────────────────────────────────
   const calculateDistance = (points: Array<{ lat: number; lng: number }>): string => {
     if (points.length < 2) return t('quickStartPage.stats.zeroDistance');
     let total = 0;
@@ -179,6 +184,28 @@ const QuickStartPage = () => {
     }
   };
 
+  // ────────────────────────────────────────────────
+  // 核心函式
+  // ────────────────────────────────────────────────
+  const getUserPhone = async () => {
+    try {
+      await initDb();
+      const db = getDb();
+      const result = await db.executeSql(
+        'SELECT phone FROM user ORDER BY id DESC LIMIT 1'
+      );
+
+      if (result[0].rows.length > 0) {
+        const phone = result[0].rows.item(0).phone;
+        return phone ? phone.replace(/[^0-9]/g, '') : null;
+      }
+      return null;
+    } catch (err) {
+      console.error('Error getting phone from SQLite:', err);
+      return null;
+    }
+  };
+
   const uploadLocationToFirebase = async (
     latitude: number,
     longitude: number,
@@ -188,6 +215,12 @@ const QuickStartPage = () => {
     heading?: number | null,
     sid?: string
   ) => {
+    const phone = await getUserPhone();
+    if (!phone || !sid) {
+      console.warn('Missing phone or sessionId, skipping upload');
+      return;
+    }
+
     const data = {
       latitude,
       longitude,
@@ -195,16 +228,18 @@ const QuickStartPage = () => {
       altitude: altitude ?? null,
       speed: speed ?? null,
       heading: heading ?? null,
-      sessionId: sid || 'unknown',
       timestamp: Date.now(),
       timestampISO: new Date().toISOString()
     };
 
+    const pointKey = `point_${currentPointCounter.current}`;
+    currentPointCounter.current += 1;
+
     try {
       const res = await fetch(
-        'https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/tracking_data.json',
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${phone}/QuickStartSessions/${sid}/points/${pointKey}.json`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         }
@@ -215,9 +250,11 @@ const QuickStartPage = () => {
         setLastFirebaseUpload(
           new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         );
+      } else {
+        console.warn('Upload failed, status:', res.status);
       }
     } catch (err) {
-      console.error('Firebase upload failed', err);
+      console.error('Firebase upload error:', err);
     }
   };
 
@@ -238,9 +275,10 @@ const QuickStartPage = () => {
         });
         setLastUpdateTime(ts);
 
-        if (currentRoute) {
+        const sidToUse = currentSessionRef.current || (currentRoute?.sessionId || '');
+        if (sidToUse) {
           await LocationTrackerDB.addLocation(
-            currentRoute.id,
+            currentRoute?.id || 0,
             latitude,
             longitude,
             accuracy,
@@ -256,8 +294,10 @@ const QuickStartPage = () => {
             altitude,
             speed,
             heading,
-            currentRoute.sessionId
+            sidToUse
           );
+        } else {
+          console.warn('No sessionId available for saving location');
         }
       },
       err => {
@@ -272,12 +312,22 @@ const QuickStartPage = () => {
     );
   };
 
-  const generateSessionId = () => {
-    const now = new Date();
-    const date = now.toISOString().slice(2, 10).replace(/-/g, '');
-    const time = now.toTimeString().slice(0, 5).replace(/:/g, '');
-    const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `SESS-${date}-${time}-${rand}`;
+  const generateSessionId = async () => {
+    const nextNum = await getNextSessionNumber();
+    return `session_${nextNum}`;
+  };
+
+  const getNextSessionNumber = async () => {
+    try {
+      await initDb();
+      const db = getDb();
+      const [result] = await db.executeSql('SELECT COUNT(*) as count FROM routes');
+      const count = result.rows.item(0).count || 0;
+      return count + 1;
+    } catch (err) {
+      console.error('Error getting session count:', err);
+      return 1;
+    }
   };
 
   const startTracking = async () => {
@@ -285,13 +335,38 @@ const QuickStartPage = () => {
 
     setTracking(true);
     setLocations([]);
+    currentPointCounter.current = 1;
 
-    const sid = generateSessionId();
+    const sid = await generateSessionId();
     setSessionId(sid);
+    currentSessionRef.current = sid;
 
     try {
       const route = await LocationTrackerDB.createRoute(`Session-${sid}`, sid);
       setCurrentRoute(route);
+
+      const phone = await getUserPhone();
+      if (!phone) {
+        Alert.alert('錯誤', '請先在個人資料頁設定電話號碼');
+        setTracking(false);
+        return;
+      }
+
+      const normalizedPhone = phone;
+
+      const startTime = new Date().toISOString();
+
+      await fetch(
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/QuickStartSessions/${sid}.json`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            startTime,
+            status: 'ACTIVE'
+          })
+        }
+      );
 
       await acquireLocation();
 
@@ -303,6 +378,7 @@ const QuickStartPage = () => {
       );
     } catch (err: any) {
       setTracking(false);
+      currentSessionRef.current = null;
       Alert.alert(
         t('quickStartPage.alert.startFailed.title'),
         err.message || t('quickStartPage.alert.startFailed.message')
@@ -310,12 +386,42 @@ const QuickStartPage = () => {
     }
   };
 
-  const stopTracking = () => {
+  const stopTracking = async () => {
     setTracking(false);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+
+    const phone = await getUserPhone();
+    if (phone && sessionId) {
+      const normalizedPhone = phone;
+
+      // 先讀取現有 points
+      const currentDataRes = await fetch(
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/QuickStartSessions/${sessionId}.json`
+      );
+      const currentData = await currentDataRes.json() || {};
+
+      const points = currentData.points || {};
+
+      await fetch(
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/QuickStartSessions/${sessionId}.json`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            points,           // 第一個屬性
+            endTime: new Date().toISOString(),
+            startTime: currentData.startTime || new Date().toISOString(),
+            status: 'COMPLETED'
+          })
+        }
+      );
+    }
+
+    currentSessionRef.current = null;
+    setSessionId('');
 
     Alert.alert(
       t('quickStartPage.alert.trackingStopped.title'),

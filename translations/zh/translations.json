@@ -252,8 +252,8 @@
       }
     },
     "profileSaved": "個人資料已儲存！"
-    },
-    "pages": {
+  },
+  "pages": {
     "map": "地圖",
     "sos": "緊急求救",
     "settings": "設置",

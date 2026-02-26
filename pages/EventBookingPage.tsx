@@ -13,6 +13,7 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import DatePicker from 'react-native-date-picker';
 import { useTranslation } from 'react-i18next';
+import { initDb, getDb } from '../services/db/initDb';
 
 interface Waypoint {
   latitude: number;
@@ -20,7 +21,7 @@ interface Waypoint {
 }
 
 interface EventItem {
-  id: string;
+  id: string;         // 現在是 event_1, event_2...
   title: string;
   date: string;       // YYYY-MM-DD
   startTime: string;  // HH:mm
@@ -50,17 +51,46 @@ const EventBookingPage = () => {
 
   const mapRef = useRef<MapView>(null);
 
-  const EVENTS_REF = 'booked_events';
-
   useEffect(() => {
     loadEventsFromFirebase();
   }, []);
 
+  // 從 SQLite 讀取電話號碼
+  const getUserPhone = async () => {
+    try {
+      await initDb();
+      const db = getDb();
+      const result = await db.executeSql(
+        'SELECT phone FROM user ORDER BY id DESC LIMIT 1'
+      );
+
+      if (result[0].rows.length > 0) {
+        const phone = result[0].rows.item(0).phone;
+        return phone ? phone.replace(/[^0-9]/g, '') : null; // 正規化成純數字
+      }
+      return null;
+    } catch (err) {
+      console.error('Error getting phone:', err);
+      return null;
+    }
+  };
+
   const loadEventsFromFirebase = async () => {
     try {
       setLoading(true);
+      const phone = await getUserPhone();
+      if (!phone) {
+        Alert.alert(
+          t('eventBookingPage.alert.noPhone.title'),
+          t('eventBookingPage.alert.noPhone.message')
+        );
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(
-        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/${EVENTS_REF}.json`
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${phone}/booked_events.json`
       );
       const data = await response.json();
 
@@ -84,6 +114,26 @@ const EventBookingPage = () => {
     }
   };
 
+  const getNextEventNumber = async () => {
+    const phone = await getUserPhone();
+    if (!phone) return 1;
+
+    try {
+      const response = await fetch(
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${phone}/booked_events.json`
+      );
+      const data = await response.json();
+      if (data) {
+        const count = Object.keys(data).length;
+        return count + 1;
+      }
+      return 1;
+    } catch (err) {
+      console.error('Error getting event count:', err);
+      return 1;
+    }
+  };
+
   const saveEventToFirebase = async () => {
     if (!title.trim()) {
       Alert.alert(
@@ -100,11 +150,23 @@ const EventBookingPage = () => {
       return;
     }
 
+    const phone = await getUserPhone();
+    if (!phone) {
+      Alert.alert(
+        t('eventBookingPage.alert.noPhone.title'),
+        t('eventBookingPage.alert.noPhone.message')
+      );
+      return;
+    }
+
+    const eventNumber = await getNextEventNumber();
+    const eventId = `event_${eventNumber}`;
+
     const dateStr = selectedDate.toISOString().split('T')[0];
     const startStr = startTime.toTimeString().slice(0, 5);
     const endStr = endTime.toTimeString().slice(0, 5);
 
-    const newEvent: Omit<EventItem, 'id'> = {
+    const newEvent = {
       title: title.trim(),
       date: dateStr,
       startTime: startStr,
@@ -115,19 +177,16 @@ const EventBookingPage = () => {
 
     try {
       const response = await fetch(
-        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/${EVENTS_REF}.json`,
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${phone}/booked_events/${eventId}.json`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newEvent),
         }
       );
 
       if (response.ok) {
-        const result = await response.json();
-        const newId = result.name;
-
-        setEvents(prev => [{ id: newId, ...newEvent }, ...prev]);
+        setEvents(prev => [{ id: eventId, ...newEvent }, ...prev]);
         Alert.alert(
           t('eventBookingPage.alert.saveSuccess.title'),
           t('eventBookingPage.alert.saveSuccess.message')

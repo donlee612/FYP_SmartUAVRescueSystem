@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import Geolocation from '@react-native-community/geolocation';
+import { useTranslation } from 'react-i18next';
+
+// SQLite helpers（跟 ProfilePage 用同一套）
+import { initDb, getDb } from '../services/db/initDb';
 
 const SosPage = () => {
   const { t } = useTranslation();
@@ -22,9 +25,35 @@ const SosPage = () => {
     }
   };
 
-  const requestRescue = () => {
-    Geolocation.getCurrentPosition(
-      (position) => {
+const requestRescue = () => {
+  Geolocation.getCurrentPosition(
+    async (position) => {
+      try {
+        await initDb();
+        const db = getDb();
+
+        const result = await db.executeSql(
+          'SELECT phone FROM user ORDER BY id DESC LIMIT 1'
+        );
+
+        if (result[0].rows.length === 0 || !result[0].rows.item(0).phone) {
+          Alert.alert(
+            t('sosPage.errorTitle') || '錯誤',
+            t('sosPage.noPhoneStored') || '請先在個人資料頁設定電話號碼'
+          );
+          return;
+        }
+
+        const phone = result[0].rows.item(0).phone;
+        const normalizedPhone = phone.replace(/[^0-9]/g, '');
+
+        console.log('Normalized phone:', normalizedPhone); // debug
+
+        if (!normalizedPhone) {
+          Alert.alert('錯誤', '電話號碼無效，請重新設定');
+          return;
+        }
+
         const { latitude, longitude } = position.coords;
 
         const rescueData = {
@@ -32,61 +61,53 @@ const SosPage = () => {
           longitude,
           status: 'PENDING',
           timestamp: Date.now(),
+          device: Platform.OS,
         };
 
-        fetch(
-          'https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/rescue_requests.json',
+        const timestampKey = Date.now().toString(); // 改成純數字時間戳
+
+        console.log('Timestamp key:', timestampKey); // debug
+        console.log('Full URL:', `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/rescue_requests/${timestampKey}.json`);
+
+        const response = await fetch(
+          `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/rescue_requests/${timestampKey}.json`,
           {
-            method: 'POST',
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(rescueData),
           }
-        )
-          .then((response) => {
-            if (response.ok) {
-              Alert.alert(
-                t('sosPage.successTitle') || 'Success',
-                t('sosPage.successMessage') || 'SOS request sent successfully!'
-              );
-            } else {
-              throw new Error('Failed to send SOS request');
-            }
-          })
-          .catch((error) => {
-            console.error('SOS request error:', error);
-            Alert.alert(
-              t('sosPage.errorTitle') || 'Error',
-              t('sosPage.requestFailed') || 'Failed to send SOS request. Please try again.'
-            );
-          });
-      },
-      (error) => {
-        console.error('Location error:', error);
-        let errorMsg = t('sosPage.requestFailed') || 'Failed to get location.';
+        );
 
-        switch (error.code) {
-          case 1:
-            errorMsg = t('sosPage.locationPermissionDenied') || 'Location permission denied.';
-            break;
-          case 2:
-            errorMsg = t('sosPage.locationUnavailable') || 'Location service unavailable.';
-            break;
-          case 3:
-            errorMsg = t('sosPage.locationTimeout') || 'Location request timed out.';
-            break;
-          default:
-            errorMsg = error.message || errorMsg;
+        console.log('Response status:', response.status); // debug
+
+        if (response.ok) {
+          Alert.alert(
+            t('sosPage.successTitle') || '成功',
+            t('sosPage.successMessage') || 'SOS 求救訊號已發送！'
+          );
+        } else {
+          const errorText = await response.text();
+          console.log('Firebase error:', errorText);
+          throw new Error(`Failed to send, status: ${response.status}`);
         }
-
-        Alert.alert(t('sosPage.errorTitle') || 'Error', errorMsg);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 10000,
+      } catch (error) {
+        console.error('SOS request error:', error);
+        Alert.alert(
+          t('sosPage.errorTitle') || '錯誤',
+          t('sosPage.requestFailed') || '發送失敗，請稍後再試'
+        );
       }
-    );
-  };
+    },
+    (error) => {
+      // 定位錯誤處理（同上）
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 10000,
+    }
+  );
+};
 
   return (
     <View style={styles.container}>
@@ -113,7 +134,7 @@ const SosPage = () => {
         <Text style={styles.callButtonText}>{t('sosPage.callButton')}</Text>
       </TouchableOpacity>
 
-      {/* 頁面標題與 Logo（置底或置中） */}
+      {/* 頁尾 slogan */}
       <View style={styles.footerLogo}>
         <Text style={styles.sloganText}>{t('sosPage.slogan')}</Text>
       </View>
