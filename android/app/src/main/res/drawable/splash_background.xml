@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 背景色（白色或你的品牌色，例如 #0D47A1 深藍） -->
+    <item android:drawable="#FFFFFF" />
+
+    <!-- 置中顯示 Logo -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_logo" />
+    </item>
+
+</layer-list>
