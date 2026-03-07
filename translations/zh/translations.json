@@ -137,8 +137,13 @@
     "button": {
       "addNew": "＋ 新增行程",
       "cancelAdd": "取消新增",
+      "cancelEdit": "取消編輯",
       "removeLast": "移除最後一個點",
-      "save": "儲存行程至雲端"
+      "save": "儲存行程至雲端",
+      "update": "更新行程",
+      "edit": "編輯",
+      "delete": "刪除",
+      "cancel": "取消"
     },
     "form": {
       "titlePlaceholder": "行程名稱（例如：沙田救援演練）",
@@ -148,12 +153,18 @@
       "map": {
         "title": "路線規劃（長按地圖新增點，已有 {{count}} 個點）",
         "marker": "點 {{index}}"
-      }
+      },
+      "editTitle": "編輯行程",
+      "addTitle": "新增行程"
     },
     "alert": {
       "loadFailed": {
         "title": "錯誤",
         "message": "無法從 Firebase 載入行程"
+      },
+      "noPhone": {
+        "title": "未設定電話",
+        "message": "請先在個人資料頁設定電話號碼"
       },
       "validation": {
         "title": "提示",
@@ -162,11 +173,24 @@
       },
       "saveSuccess": {
         "title": "成功",
-        "message": "行程已新增並同步到雲端"
+        "message": "行程已新增並同步到雲端",
+        "updated": "行程已更新並同步到雲端"
       },
       "saveFailed": {
         "title": "錯誤",
         "message": "無法儲存行程，請稍後再試"
+      },
+      "deleteConfirm": {
+        "title": "確認刪除",
+        "message": "確定要刪除此行程嗎？此操作無法復原。"
+      },
+      "deleteSuccess": {
+        "title": "刪除成功",
+        "message": "行程已刪除"
+      },
+      "deleteFailed": {
+        "title": "刪除失敗",
+        "message": "無法刪除行程，請稍後再試"
       }
     }
   },

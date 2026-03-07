@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Button,
+  Button,           // 重新 import Button
   TextInput,
   ScrollView,
   Alert,
@@ -21,11 +21,11 @@ interface Waypoint {
 }
 
 interface EventItem {
-  id: string;         // 現在是 event_1, event_2...
+  id: string;
   title: string;
-  date: string;       // YYYY-MM-DD
-  startTime: string;  // HH:mm
-  endTime: string;    // HH:mm
+  date: string;
+  startTime: string;
+  endTime: string;
   waypoints: Waypoint[];
   createdAt: string;
 }
@@ -36,15 +36,14 @@ const EventBookingPage = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 新增行程表單狀態
   const [showForm, setShowForm] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
 
-  // DatePicker 控制
   const [dateOpen, setDateOpen] = useState(false);
   const [startTimeOpen, setStartTimeOpen] = useState(false);
   const [endTimeOpen, setEndTimeOpen] = useState(false);
@@ -55,7 +54,6 @@ const EventBookingPage = () => {
     loadEventsFromFirebase();
   }, []);
 
-  // 從 SQLite 讀取電話號碼
   const getUserPhone = async () => {
     try {
       await initDb();
@@ -66,7 +64,7 @@ const EventBookingPage = () => {
 
       if (result[0].rows.length > 0) {
         const phone = result[0].rows.item(0).phone;
-        return phone ? phone.replace(/[^0-9]/g, '') : null; // 正規化成純數字
+        return phone ? phone.replace(/[^0-9]/g, '') : null;
       }
       return null;
     } catch (err) {
@@ -159,20 +157,30 @@ const EventBookingPage = () => {
       return;
     }
 
-    const eventNumber = await getNextEventNumber();
-    const eventId = `event_${eventNumber}`;
+    let eventId: string;
+    let createdAt: string;
+
+    if (editingEventId) {
+      eventId = editingEventId;
+      const existingEvent = events.find(e => e.id === eventId);
+      createdAt = existingEvent?.createdAt || new Date().toISOString();
+    } else {
+      const eventNumber = await getNextEventNumber();
+      eventId = `event_${eventNumber}`;
+      createdAt = new Date().toISOString();
+    }
 
     const dateStr = selectedDate.toISOString().split('T')[0];
     const startStr = startTime.toTimeString().slice(0, 5);
     const endStr = endTime.toTimeString().slice(0, 5);
 
-    const newEvent = {
+    const updatedEvent = {
       title: title.trim(),
       date: dateStr,
       startTime: startStr,
       endTime: endStr,
       waypoints,
-      createdAt: new Date().toISOString(),
+      createdAt,
     };
 
     try {
@@ -181,15 +189,24 @@ const EventBookingPage = () => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newEvent),
+          body: JSON.stringify(updatedEvent),
         }
       );
 
       if (response.ok) {
-        setEvents(prev => [{ id: eventId, ...newEvent }, ...prev]);
+        setEvents(prev => {
+          if (editingEventId) {
+            return prev.map(e => (e.id === eventId ? { id: eventId, ...updatedEvent } : e));
+          } else {
+            return [{ id: eventId, ...updatedEvent }, ...prev];
+          }
+        });
+
         Alert.alert(
           t('eventBookingPage.alert.saveSuccess.title'),
-          t('eventBookingPage.alert.saveSuccess.message')
+          editingEventId
+            ? t('eventBookingPage.alert.saveSuccess.updated')
+            : t('eventBookingPage.alert.saveSuccess.message')
         );
 
         resetForm();
@@ -205,7 +222,61 @@ const EventBookingPage = () => {
     }
   };
 
+  const deleteEvent = async (eventId: string) => {
+    Alert.alert(
+      t('eventBookingPage.alert.deleteConfirm.title'),
+      t('eventBookingPage.alert.deleteConfirm.message'),
+      [
+        { text: t('eventBookingPage.button.cancel'), style: 'cancel' },
+        {
+          text: t('eventBookingPage.button.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            const phone = await getUserPhone();
+            if (!phone) return;
+
+            try {
+              const response = await fetch(
+                `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${phone}/booked_events/${eventId}.json`,
+                {
+                  method: 'DELETE',
+                }
+              );
+
+              if (response.ok) {
+                setEvents(prev => prev.filter(e => e.id !== eventId));
+                Alert.alert(
+                  t('eventBookingPage.alert.deleteSuccess.title'),
+                  t('eventBookingPage.alert.deleteSuccess.message')
+                );
+              } else {
+                throw new Error('Delete failed');
+              }
+            } catch (err) {
+              console.error('Failed to delete event:', err);
+              Alert.alert(
+                t('eventBookingPage.alert.deleteFailed.title'),
+                t('eventBookingPage.alert.deleteFailed.message')
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const editEvent = (event: EventItem) => {
+    setEditingEventId(event.id);
+    setTitle(event.title);
+    setSelectedDate(new Date(event.date));
+    setStartTime(new Date(`${event.date}T${event.startTime}:00`));
+    setEndTime(new Date(`${event.date}T${event.endTime}:00`));
+    setWaypoints(event.waypoints);
+    setShowForm(true);
+  };
+
   const resetForm = () => {
+    setEditingEventId(null);
     setTitle('');
     setSelectedDate(new Date());
     setStartTime(new Date());
@@ -250,26 +321,49 @@ const EventBookingPage = () => {
               <Text>{t('eventBookingPage.events.date')}: {event.date}</Text>
               <Text>{t('eventBookingPage.events.time')}: {event.startTime} ~ {event.endTime}</Text>
               <Text>{t('eventBookingPage.events.waypoints')}: {event.waypoints.length}</Text>
+
+              <View style={styles.eventActions}>
+                <TouchableOpacity onPress={() => editEvent(event)}>
+                  <Text style={styles.editButton}>{t('eventBookingPage.button.edit')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteEvent(event.id)}>
+                  <Text style={styles.deleteButton}>{t('eventBookingPage.button.delete')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         )}
       </View>
 
-      {/* 新增行程按鈕 */}
+      {/* 新增/修改行程按鈕 */}
       <View style={styles.control}>
-        <Button
-          title={showForm ? t('eventBookingPage.button.cancelAdd') : t('eventBookingPage.button.addNew')}
-          color={showForm ? '#F44336' : '#4CAF50'}
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            showForm ? styles.cancelButton : styles.addButton
+          ]}
           onPress={() => {
             if (showForm) resetForm();
             else setShowForm(true);
           }}
-        />
+        >
+          <Text style={styles.actionButtonText}>
+            {showForm
+              ? (editingEventId
+                  ? t('eventBookingPage.button.cancelEdit')
+                  : t('eventBookingPage.button.cancelAdd'))
+              : t('eventBookingPage.button.addNew')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* 新增表單 */}
+      {/* 新增/修改表單 */}
       {showForm && (
         <View style={styles.formContainer}>
+          <Text style={styles.formTitle}>
+            {editingEventId ? t('eventBookingPage.form.editTitle') : t('eventBookingPage.form.addTitle')}
+          </Text>
+
           <TextInput
             style={styles.input}
             placeholder={t('eventBookingPage.form.titlePlaceholder')}
@@ -371,14 +465,18 @@ const EventBookingPage = () => {
           </View>
 
           {/* 儲存按鈕 */}
-          <View style={styles.saveBtn}>
-            <Button
-              title={t('eventBookingPage.button.save')}
-              color="#4CAF50"
-              onPress={saveEventToFirebase}
-              disabled={waypoints.length < 2 || !title.trim()}
-            />
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (waypoints.length < 2 || !title.trim()) && styles.disabledSaveButton
+            ]}
+            onPress={saveEventToFirebase}
+            disabled={waypoints.length < 2 || !title.trim()}
+          >
+            <Text style={styles.saveButtonText}>
+              {editingEventId ? t('eventBookingPage.button.update') : t('eventBookingPage.button.save')}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -409,6 +507,7 @@ const styles = StyleSheet.create({
   control: { marginHorizontal: 16, marginVertical: 12 },
 
   formContainer: { margin: 16, backgroundColor: 'white', padding: 16, borderRadius: 12, elevation: 3 },
+  formTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: '#333' },
 
   input: {
     borderWidth: 1,
@@ -431,7 +530,55 @@ const styles = StyleSheet.create({
   mapSection: { marginTop: 16 },
   map: { height: 320, borderRadius: 12, marginVertical: 8 },
 
-  saveBtn: { marginTop: 20 },
+  // 新增的按鈕樣式
+  actionButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButton: {
+    backgroundColor: '#4CAF50', // 綠色 - 新增
+  },
+  cancelButton: {
+    backgroundColor: '#F44336', // 紅色 - 取消
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  saveButton: {
+    backgroundColor: '#4CAF50', // 綠色
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  disabledSaveButton: {
+    backgroundColor: '#cccccc', // 灰色
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  eventActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  editButton: {
+    color: '#2196F3',
+    marginRight: 16,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    color: '#F44336',
+    fontWeight: '600',
+  },
 });
 
 export default EventBookingPage;

@@ -137,8 +137,13 @@
     "button": {
       "addNew": "+ Add New Event",
       "cancelAdd": "Cancel Add",
+      "cancelEdit": "Cancel Edit",
       "removeLast": "Remove Last Point",
-      "save": "Save Event to Cloud"
+      "save": "Save Event to Cloud",
+      "update": "Update Event",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel"
     },
     "form": {
       "titlePlaceholder": "Event Name (e.g. Shatin Rescue Drill)",
@@ -148,12 +153,18 @@
       "map": {
         "title": "Route Planning (Long press map to add points, {{count}} points added)",
         "marker": "Point {{index}}"
-      }
+      },
+      "editTitle": "Edit Event",
+      "addTitle": "Add New Event"
     },
     "alert": {
       "loadFailed": {
         "title": "Error",
         "message": "Failed to load events from Firebase"
+      },
+      "noPhone": {
+        "title": "No Phone Number Set",
+        "message": "Please set your phone number in Profile first"
       },
       "validation": {
         "title": "Required",
@@ -162,11 +173,24 @@
       },
       "saveSuccess": {
         "title": "Success",
-        "message": "Event added and synced to cloud"
+        "message": "Event added and synced to cloud",
+        "updated": "Event updated and synced to cloud"
       },
       "saveFailed": {
         "title": "Error",
         "message": "Failed to save event. Please try again later."
+      },
+      "deleteConfirm": {
+        "title": "Confirm Delete",
+        "message": "Are you sure you want to delete this event? This action cannot be undone."
+      },
+      "deleteSuccess": {
+        "title": "Delete Successful",
+        "message": "Event has been deleted"
+      },
+      "deleteFailed": {
+        "title": "Delete Failed",
+        "message": "Failed to delete event. Please try again later."
       }
     }
   },
