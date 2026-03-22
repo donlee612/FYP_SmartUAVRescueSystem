@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  Button,           // 重新 import Button
   TextInput,
   ScrollView,
   Alert,
   TouchableOpacity,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import DatePicker from 'react-native-date-picker';
@@ -29,6 +29,39 @@ interface EventItem {
   waypoints: Waypoint[];
   createdAt: string;
 }
+
+// ────────────────────────────────────────────────
+// 顏色與樣式常數（與 QuickStartPage 一致）
+const COLORS = {
+  primary: '#3B82F6',       // blue-500
+  primaryDark: '#1D4ED8',
+  success: '#10B981',       // green-500
+  danger: '#EF4444',
+  background: '#F9FAFB',
+  card: '#FFFFFF',
+  text: '#111827',
+  textSecondary: '#6B7280',
+  border: '#E5E7EB',
+  mapBorder: '#BFDBFE',
+  lightBg: '#F0F9FF',
+  header: '#000000',
+};
+
+const SHADOW_SM = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 2,
+};
+
+const SHADOW_MD = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1,
+  shadowRadius: 8,
+  elevation: 4,
+};
 
 const EventBookingPage = () => {
   const { t } = useTranslation();
@@ -299,6 +332,7 @@ const EventBookingPage = () => {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>{t('eventBookingPage.title')}</Text>
         <Text style={styles.subtitle}>{t('eventBookingPage.subtitle')}</Text>
@@ -311,16 +345,21 @@ const EventBookingPage = () => {
         </Text>
 
         {loading ? (
-          <Text>{t('eventBookingPage.loading')}</Text>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>{t('eventBookingPage.loading')}</Text>
+          </View>
         ) : events.length === 0 ? (
           <Text style={styles.emptyText}>{t('eventBookingPage.events.empty')}</Text>
         ) : (
           events.map(event => (
-            <View key={event.id} style={styles.eventCard}>
+            <View key={event.id} style={[styles.eventCard, SHADOW_SM]}>
               <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text>{t('eventBookingPage.events.date')}: {event.date}</Text>
-              <Text>{t('eventBookingPage.events.time')}: {event.startTime} ~ {event.endTime}</Text>
-              <Text>{t('eventBookingPage.events.waypoints')}: {event.waypoints.length}</Text>
+              <Text style={styles.eventDetail}>{t('eventBookingPage.events.date')}: {event.date}</Text>
+              <Text style={styles.eventDetail}>
+                {t('eventBookingPage.events.time')}: {event.startTime} ~ {event.endTime}
+              </Text>
+              <Text style={styles.eventDetail}>{t('eventBookingPage.events.waypoints')}: {event.waypoints.length}</Text>
 
               <View style={styles.eventActions}>
                 <TouchableOpacity onPress={() => editEvent(event)}>
@@ -336,16 +375,18 @@ const EventBookingPage = () => {
       </View>
 
       {/* 新增/修改行程按鈕 */}
-      <View style={styles.control}>
+      <View style={styles.controlSection}>
         <TouchableOpacity
           style={[
             styles.actionButton,
-            showForm ? styles.cancelButton : styles.addButton
+            showForm ? styles.buttonCancel : styles.buttonAdd,
+            SHADOW_MD,
           ]}
           onPress={() => {
             if (showForm) resetForm();
             else setShowForm(true);
           }}
+          activeOpacity={0.85}
         >
           <Text style={styles.actionButtonText}>
             {showForm
@@ -359,7 +400,7 @@ const EventBookingPage = () => {
 
       {/* 新增/修改表單 */}
       {showForm && (
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, SHADOW_MD]}>
           <Text style={styles.formTitle}>
             {editingEventId ? t('eventBookingPage.form.editTitle') : t('eventBookingPage.form.addTitle')}
           </Text>
@@ -373,7 +414,7 @@ const EventBookingPage = () => {
 
           {/* 日期選擇 */}
           <TouchableOpacity style={styles.pickerRow} onPress={() => setDateOpen(true)}>
-            <Text>{t('eventBookingPage.form.date')}: {formatDate(selectedDate)}</Text>
+            <Text style={styles.pickerText}>{t('eventBookingPage.form.date')}: {formatDate(selectedDate)}</Text>
           </TouchableOpacity>
           <DatePicker
             modal
@@ -390,7 +431,7 @@ const EventBookingPage = () => {
 
           {/* 開始時間 */}
           <TouchableOpacity style={styles.pickerRow} onPress={() => setStartTimeOpen(true)}>
-            <Text>{t('eventBookingPage.form.startTime')}: {formatTime(startTime)}</Text>
+            <Text style={styles.pickerText}>{t('eventBookingPage.form.startTime')}: {formatTime(startTime)}</Text>
           </TouchableOpacity>
           <DatePicker
             modal
@@ -406,7 +447,7 @@ const EventBookingPage = () => {
 
           {/* 結束時間 */}
           <TouchableOpacity style={styles.pickerRow} onPress={() => setEndTimeOpen(true)}>
-            <Text>{t('eventBookingPage.form.endTime')}: {formatTime(endTime)}</Text>
+            <Text style={styles.pickerText}>{t('eventBookingPage.form.endTime')}: {formatTime(endTime)}</Text>
           </TouchableOpacity>
           <DatePicker
             modal
@@ -426,41 +467,50 @@ const EventBookingPage = () => {
               {t('eventBookingPage.form.map.title', { count: waypoints.length })}
             </Text>
 
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              initialRegion={{
-                latitude: 22.387,
-                longitude: 114.195,
-                latitudeDelta: 0.08,
-                longitudeDelta: 0.08,
-              }}
-              onLongPress={handleMapLongPress}
-            >
-              {waypoints.map((wp, idx) => (
-                <Marker
-                  key={idx}
-                  coordinate={wp}
-                  title={t('eventBookingPage.form.map.marker', { index: idx + 1 })}
-                  pinColor={idx === 0 ? 'green' : idx === waypoints.length - 1 ? 'red' : 'orange'}
-                />
-              ))}
+            <View style={[styles.mapContainer, SHADOW_MD]}>
+              <MapView
+                ref={mapRef}
+                style={StyleSheet.absoluteFillObject}
+                initialRegion={{
+                  latitude: 22.387,
+                  longitude: 114.195,
+                  latitudeDelta: 0.08,
+                  longitudeDelta: 0.08,
+                }}
+                onLongPress={handleMapLongPress}
+                showsUserLocation={true}
+                showsMyLocationButton={true}
+                showsCompass={true}
+              >
+                {waypoints.map((wp, idx) => (
+                  <Marker
+                    key={idx}
+                    coordinate={wp}
+                    title={t('eventBookingPage.form.map.marker', { index: idx + 1 })}
+                    pinColor={idx === 0 ? 'green' : idx === waypoints.length - 1 ? 'red' : 'orange'}
+                  />
+                ))}
 
-              {waypoints.length >= 2 && (
-                <Polyline
-                  coordinates={waypoints}
-                  strokeColor="#2196F3"
-                  strokeWidth={4}
-                />
-              )}
-            </MapView>
+                {waypoints.length >= 2 && (
+                  <Polyline
+                    coordinates={waypoints}
+                    strokeColor={COLORS.primary}
+                    strokeWidth={5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                )}
+              </MapView>
+            </View>
 
             {waypoints.length > 0 && (
-              <Button
-                title={t('eventBookingPage.button.removeLast')}
-                color="#FF9800"
+              <TouchableOpacity
+                style={styles.removeButton}
                 onPress={removeLastWaypoint}
-              />
+                activeOpacity={0.85}
+              >
+                <Text style={styles.removeButtonText}>{t('eventBookingPage.button.removeLast')}</Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -468,10 +518,12 @@ const EventBookingPage = () => {
           <TouchableOpacity
             style={[
               styles.saveButton,
-              (waypoints.length < 2 || !title.trim()) && styles.disabledSaveButton
+              (waypoints.length < 2 || !title.trim()) && styles.disabledSaveButton,
+              SHADOW_MD,
             ]}
             onPress={saveEventToFirebase}
             disabled={waypoints.length < 2 || !title.trim()}
+            activeOpacity={0.85}
           >
             <Text style={styles.saveButtonText}>
               {editingEventId ? t('eventBookingPage.button.update') : t('eventBookingPage.button.save')}
@@ -486,98 +538,182 @@ const EventBookingPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  header: { padding: 20, backgroundColor: '#673AB7', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', color: 'white' },
-  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.9)' },
-
-  section: { margin: 16, backgroundColor: 'white', padding: 16, borderRadius: 12, elevation: 2 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#333' },
-  eventCard: {
-    backgroundColor: '#f0f4ff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#673AB7',
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.header,
+    alignItems: 'center',
   },
-  eventTitle: { fontSize: 16, fontWeight: '600', color: '#673AB7' },
-  emptyText: { textAlign: 'center', color: '#888', padding: 20 },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.88)',
+    textAlign: 'center',
+  },
 
-  control: { marginHorizontal: 16, marginVertical: 12 },
-
-  formContainer: { margin: 16, backgroundColor: 'white', padding: 16, borderRadius: 12, elevation: 3 },
-  formTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16, color: '#333' },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+  section: {
+    marginHorizontal: 20,
+    marginTop: 24,
     marginBottom: 16,
-    fontSize: 16,
   },
-
-  pickerRow: {
-    padding: 14,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
   },
-
-  mapSection: { marginTop: 16 },
-  map: { height: 320, borderRadius: 12, marginVertical: 8 },
-
-  // 新增的按鈕樣式
-  actionButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
+  loadingContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 16,
   },
-  addButton: {
-    backgroundColor: '#4CAF50', // 綠色 - 新增
+  loadingText: {
+    marginLeft: 10,
+    color: COLORS.textSecondary,
+    fontSize: 15,
   },
-  cancelButton: {
-    backgroundColor: '#F44336', // 紅色 - 取消
+  emptyText: {
+    textAlign: 'center',
+    color: COLORS.textSecondary,
+    padding: 20,
+    fontSize: 15,
   },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  eventCard: {
+    backgroundColor: COLORS.lightBg,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderLeftWidth: 5,
+    borderLeftColor: COLORS.primary,
   },
-
-  saveButton: {
-    backgroundColor: '#4CAF50', // 綠色
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: 8,
   },
-  disabledSaveButton: {
-    backgroundColor: '#cccccc', // 灰色
+  eventDetail: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
   },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-
   eventActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 8,
   },
   editButton: {
-    color: '#2196F3',
+    color: COLORS.primary,
     marginRight: 16,
     fontWeight: '600',
+    fontSize: 14,
   },
   deleteButton: {
-    color: '#F44336',
+    color: COLORS.danger,
     fontWeight: '600',
+    fontSize: 14,
+  },
+
+  controlSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  actionButton: {
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonAdd: {
+    backgroundColor: COLORS.success,
+  },
+  buttonCancel: {
+    backgroundColor: COLORS.danger,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+
+  formContainer: {
+    marginHorizontal: 20,
+    marginBottom: 32,
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: 'white',
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    fontSize: 16,
+    backgroundColor: COLORS.lightBg,
+  },
+  pickerRow: {
+    padding: 16,
+    backgroundColor: COLORS.lightBg,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  pickerText: {
+    fontSize: 15,
+    color: COLORS.text,
+  },
+
+  mapSection: { marginTop: 20 },
+  mapContainer: {
+    height: 340,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.mapBorder,
+    backgroundColor: COLORS.lightBg,
+  },
+  removeButton: {
+    marginTop: 12,
+    backgroundColor: '#F59E0B',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  removeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  saveButton: {
+    backgroundColor: COLORS.success,
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  disabledSaveButton: {
+    backgroundColor: COLORS.border,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
 

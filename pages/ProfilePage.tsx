@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -24,7 +25,6 @@ interface EmergencyContact {
 const ProfilePage = () => {
   const { t } = useTranslation();
 
-  // Profile fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState('');
@@ -32,21 +32,14 @@ const ProfilePage = () => {
   const [email, setEmail] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
 
-  // Emergency contacts
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
-    { name: '', phone: '' },
-  ]);
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
 
-  // State
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profileExists, setProfileExists] = useState(false);
   const [profileId, setProfileId] = useState<number | null>(null);
 
-  // 正規化電話號碼作為 Firebase key（只保留數字）
-  const normalizePhoneForKey = (phone: string) => {
-    return phone.replace(/[^0-9]/g, ''); // e.g. +852-9123 4567 → 85291234567
-  };
+  const normalizePhoneForKey = (phone: string) => phone.replace(/[^0-9]/g, '');
 
   useEffect(() => {
     loadProfile();
@@ -58,10 +51,7 @@ const ProfilePage = () => {
       await initDb();
       const db = getDb();
 
-      // 1. 先從本地 SQLite 載入（快速、離線可用）
-      const result = await db.executeSql(
-        'SELECT * FROM user ORDER BY id DESC LIMIT 1'
-      );
+      const result = await db.executeSql('SELECT * FROM user ORDER BY id DESC LIMIT 1');
 
       let localData = null;
       if (result[0].rows.length > 0) {
@@ -76,37 +66,50 @@ const ProfilePage = () => {
         setProfileId(localData.id);
         setProfileExists(true);
 
-        // 處理 emergency_contacts（防呆）
-        let parsedContacts: EmergencyContact[] = [{ name: '', phone: '' }];
+        // 處理本地 emergency_contacts（兼容字串格式）
+        let parsedContacts: EmergencyContact[] = [];
         if (localData.emergency_contacts) {
           try {
-            const parsed = JSON.parse(localData.emergency_contacts);
-            if (Array.isArray(parsed)) {
-              parsedContacts = parsed.filter(
-                c => typeof c === 'object' && c !== null && ('name' in c || 'phone' in c)
-              );
+            let raw = localData.emergency_contacts;
+            if (typeof raw === 'string') {
+              raw = JSON.parse(raw);
             }
-          } catch (parseErr) {
-            console.warn('Invalid emergency_contacts JSON in local DB:', parseErr);
+            if (Array.isArray(raw)) {
+              parsedContacts = raw
+                .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+                .map((item) => ({
+                  name: String((item as Record<string, unknown>).name ?? ''),
+                  phone: String((item as Record<string, unknown>).phone ?? ''),
+                }))
+                .filter((c) => c.name.trim() || c.phone.trim());
+            }
+          } catch (e) {
+            console.warn('本地 emergency_contacts 解析失敗:', e);
           }
         }
-        setEmergencyContacts(parsedContacts.length > 0 ? parsedContacts : [{ name: '', phone: '' }]);
+        setEmergencyContacts(parsedContacts);
       } else {
         setProfileExists(false);
-        setEmergencyContacts([{ name: '', phone: '' }]);
+        setEmergencyContacts([]);
       }
 
-      // 2. 背景從 Firebase 同步最新資料（如果有更新的話）
+      // 從 Firebase 強制拉取並覆蓋
       if (localData?.phone) {
-        const normalizedPhone = normalizePhoneForKey(localData.phone);
+        const normalized = normalizePhoneForKey(localData.phone);
         try {
-          const fbResponse = await fetch(
-            `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/profile.json`
+          const res = await fetch(
+            `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalized}/profile.json`
           );
-          const fbData = await fbResponse.json();
 
-          if (fbData && fbData.updated_at > (localData.updated_at || '1970-01-01T00:00:00Z')) {
-            // 雲端較新 → 覆蓋顯示
+          if (!res.ok) {
+            console.warn('Firebase fetch 失敗:', res.status);
+            return;
+          }
+
+          const fbData = await res.json();
+
+          if (fbData && typeof fbData === 'object') {
+            // 覆蓋顯示
             setFirstName(fbData.first_name || localData.first_name || '');
             setLastName(fbData.last_name || localData.last_name || '');
             setGender(fbData.gender || localData.gender || '');
@@ -114,25 +117,34 @@ const ProfilePage = () => {
             setEmail(fbData.email || localData.email || '');
             setMedicalNotes(fbData.medical_notes || localData.medical_notes || '');
 
-            // 同步緊急聯絡人
-            let fbContacts = [{ name: '', phone: '' }];
-            if (Array.isArray(fbData.emergency_contacts)) {
-              fbContacts = fbData.emergency_contacts;
-            }
-            setEmergencyContacts(fbContacts.length > 0 ? fbContacts : [{ name: '', phone: '' }]);
+            // 處理雲端 emergency_contacts（兼容字串格式）
+            let fbContacts: EmergencyContact[] = [];
+            let fbEmergency = fbData.emergency_contacts;
 
-            // 可選：更新本地 SQLite 以保持一致
+            if (typeof fbEmergency === 'string') {
+              try {
+                fbEmergency = JSON.parse(fbEmergency);
+              } catch (parseErr) {
+                console.warn('雲端 emergency_contacts 字串解析失敗:', parseErr);
+                fbEmergency = [];
+              }
+            }
+
+            if (Array.isArray(fbEmergency)) {
+              fbContacts = fbEmergency
+                .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+                .map((item) => ({
+                  name: String((item as Record<string, unknown>).name ?? ''),
+                  phone: String((item as Record<string, unknown>).phone ?? ''),
+                }))
+                .filter((c) => c.name.trim() || c.phone.trim());
+            }
+
+            setEmergencyContacts(fbContacts);
+
+            // 同步更新本地
             await db.executeSql(
-              `UPDATE user SET
-                first_name = ?,
-                last_name = ?,
-                gender = ?,
-                phone = ?,
-                email = ?,
-                medical_notes = ?,
-                emergency_contacts = ?,
-                updated_at = datetime('now')
-               WHERE id = ?`,
+              `UPDATE user SET first_name=?, last_name=?, gender=?, phone=?, email=?, medical_notes=?, emergency_contacts=?, updated_at=datetime('now') WHERE id=?`,
               [
                 fbData.first_name || localData.first_name,
                 fbData.last_name || localData.last_name,
@@ -144,47 +156,38 @@ const ProfilePage = () => {
                 localData.id,
               ]
             );
-
-            Alert.alert('已同步', '從雲端載入最新資料');
           }
-        } catch (fbError) {
-          console.warn('Firebase sync failed:', fbError);
-          // 不影響本地使用
+        } catch (err) {
+          console.warn('Firebase 同步失敗:', err);
         }
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
-      Alert.alert(
-        t('profilePage.alert.loadFailed.title'),
-        t('profilePage.alert.loadFailed.message')
-      );
-      // 錯誤時強制重設緊急聯絡人，避免 map 錯誤
-      setEmergencyContacts([{ name: '', phone: '' }]);
+      console.error('loadProfile 失敗:', error);
+      Alert.alert(t('profilePage.alert.loadFailed.title'), t('profilePage.alert.loadFailed.message'));
     } finally {
       setLoading(false);
     }
   };
 
   const addEmergencyContact = () => {
-    setEmergencyContacts([...emergencyContacts, { name: '', phone: '' }]);
+    setEmergencyContacts((prev) => [...prev, { name: '', phone: '' }]);
   };
 
-  const updateEmergencyContact = (
-    index: number,
-    field: 'name' | 'phone',
-    value: string
-  ) => {
+  const removeEmergencyContact = (index: number) => {
+    setEmergencyContacts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateEmergencyContact = (index: number, field: 'name' | 'phone', value: string) => {
     const updated = [...emergencyContacts];
     updated[index] = { ...updated[index], [field]: value };
     setEmergencyContacts(updated);
   };
 
   const saveProfile = async () => {
-    // 驗證必填：名字 + 電話
-    if (!firstName.trim() || !phoneNumber.trim()) {
+    if (!firstName.trim() || !lastName.trim() || !phoneNumber.trim()) {
       Alert.alert(
         t('profilePage.alert.validation.title'),
-        t('profilePage.alert.validation.requiredFields') || '名字與電話號碼為必填'
+        t('profilePage.alert.validation.requiredFields')
       );
       return;
     }
@@ -193,9 +196,14 @@ const ProfilePage = () => {
 
     const normalizedPhone = normalizePhoneForKey(phoneNumber);
 
-    const contacts = JSON.stringify(
-      emergencyContacts.filter(c => c.name.trim() || c.phone.trim())
-    );
+    const validContacts = emergencyContacts
+      .map((c) => ({
+        name: c.name.trim(),
+        phone: c.phone.trim(),
+      }))
+      .filter((c) => c.name.length > 0 || c.phone.length > 0);
+
+    const contactsJson = JSON.stringify(validContacts);
 
     const profileData = {
       first_name: firstName.trim(),
@@ -204,7 +212,7 @@ const ProfilePage = () => {
       phone: phoneNumber.trim(),
       email: email.trim(),
       medical_notes: medicalNotes.trim(),
-      emergency_contacts: contacts,
+      emergency_contacts: contactsJson,
       updated_at: new Date().toISOString(),
     };
 
@@ -213,18 +221,8 @@ const ProfilePage = () => {
       const db = getDb();
 
       if (profileExists && profileId) {
-        // 更新本地 SQLite
         await db.executeSql(
-          `UPDATE user SET
-            first_name = ?,
-            last_name = ?,
-            gender = ?,
-            phone = ?,
-            email = ?,
-            medical_notes = ?,
-            emergency_contacts = ?,
-            updated_at = datetime('now')
-           WHERE id = ?`,
+          `UPDATE user SET first_name=?, last_name=?, gender=?, phone=?, email=?, medical_notes=?, emergency_contacts=?, updated_at=datetime('now') WHERE id=?`,
           [
             profileData.first_name,
             profileData.last_name,
@@ -237,19 +235,9 @@ const ProfilePage = () => {
           ]
         );
       } else {
-        // 新增本地 SQLite
         const result = await db.executeSql(
-          `INSERT INTO user (
-            first_name,
-            last_name,
-            gender,
-            phone,
-            email,
-            medical_notes,
-            emergency_contacts,
-            created_at,
-            updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+          `INSERT INTO user (first_name, last_name, gender, phone, email, medical_notes, emergency_contacts, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
           [
             profileData.first_name,
             profileData.last_name,
@@ -260,13 +248,11 @@ const ProfilePage = () => {
             profileData.emergency_contacts,
           ]
         );
-
         setProfileId(result[0].insertId ?? null);
         setProfileExists(true);
       }
 
-      // 同步上傳到 Firebase
-      const fbResponse = await fetch(
+      const fbRes = await fetch(
         `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/profile.json`,
         {
           method: 'PUT',
@@ -275,8 +261,9 @@ const ProfilePage = () => {
         }
       );
 
-      if (!fbResponse.ok) {
-        console.warn('Firebase sync failed, but local saved');
+      if (!fbRes.ok) {
+        const errText = await fbRes.text();
+        console.warn('Firebase 上傳失敗:', fbRes.status, errText);
         Alert.alert('警告', '本地儲存成功，但雲端同步失敗，請檢查網路');
       }
 
@@ -285,11 +272,8 @@ const ProfilePage = () => {
         t('profilePage.alert.saveSuccess.message')
       );
     } catch (error: any) {
-      console.error('❌ Save error:', error);
-      Alert.alert(
-        t('profilePage.alert.saveFailed.title'),
-        error?.message || t('profilePage.alert.saveFailed.message')
-      );
+      console.error('儲存失敗:', error);
+      Alert.alert(t('profilePage.alert.saveFailed.title'), t('profilePage.alert.saveFailed.message'));
     } finally {
       setSaving(false);
     }
@@ -313,15 +297,12 @@ const ProfilePage = () => {
               setPhoneNumber('');
               setEmail('');
               setMedicalNotes('');
-              setEmergencyContacts([{ name: '', phone: '' }]);
+              setEmergencyContacts([]);
               setProfileExists(false);
               setProfileId(null);
               Alert.alert(t('profilePage.alert.clearSuccess.title'));
             } catch (err) {
-              Alert.alert(
-                t('profilePage.alert.clearFailed.title'),
-                t('profilePage.alert.clearFailed.message')
-              );
+              Alert.alert(t('profilePage.alert.clearFailed.title'), t('profilePage.alert.clearFailed.message'));
             }
           },
         },
@@ -331,178 +312,260 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text>{t('profilePage.loading')}</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>{t('profilePage.loading')}</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>
-          {profileExists
-            ? t('profilePage.title.existing')
-            : t('profilePage.title.new')}
-        </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.title}>
+            {profileExists ? t('profilePage.title.existing') : t('profilePage.title.new')}
+          </Text>
 
-        <Input
-          label={t('profilePage.form.phone.label') + ' *'}
-          value={phoneNumber}
-          onChange={setPhoneNumber}
-          required
-        />
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('profilePage.section.personal')}</Text>
 
-        <Input
-          label={t('profilePage.form.firstName.label') + ' *'}
-          value={firstName}
-          onChange={setFirstName}
-          required
-        />
-        <Input
-          label={t('profilePage.form.lastName.label')}
-          value={lastName}
-          onChange={setLastName}
-        />
-        <Input
-          label={t('profilePage.form.gender.label')}
-          value={gender}
-          onChange={setGender}
-        />
-        <Input
-          label={t('profilePage.form.email.label')}
-          value={email}
-          onChange={setEmail}
-        />
-        <Input
-          label={t('profilePage.form.medicalNotes.label')}
-          value={medicalNotes}
-          onChange={setMedicalNotes}
-          multiline
-        />
-
-        <Text style={styles.section}>{t('profilePage.emergencyContacts.title')}</Text>
-
-        {emergencyContacts.map((c, i) => (
-          <View key={i} style={styles.contact}>
             <Input
-              label={t('profilePage.emergencyContacts.name')}
-              value={c.name}
-              onChange={v => updateEmergencyContact(i, 'name', v)}
+              label={t('profilePage.form.firstName.label')}
+              placeholder={t('profilePage.form.placeholder.firstName')}
+              value={firstName}
+              onChange={setFirstName}
+              required
             />
+
             <Input
-              label={t('profilePage.emergencyContacts.phone')}
-              value={c.phone}
-              onChange={v => updateEmergencyContact(i, 'phone', v)}
+              label={t('profilePage.form.lastName.label')}
+              placeholder={t('profilePage.form.placeholder.lastName')}
+              value={lastName}
+              onChange={setLastName}
+              required
+            />
+
+            <Input
+              label={t('profilePage.form.gender.label')}
+              placeholder={t('profilePage.form.placeholder.gender')}
+              value={gender}
+              onChange={setGender}
+            />
+
+            <Input
+              label={t('profilePage.form.phone.label')}
+              placeholder={t('profilePage.form.placeholder.phoneNumber')}
+              value={phoneNumber}
+              onChange={setPhoneNumber}
+              keyboardType="phone-pad"
+              required
+            />
+
+            <Input
+              label={t('profilePage.form.email.label')}
+              placeholder={t('profilePage.form.placeholder.email')}
+              value={email}
+              onChange={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
           </View>
-        ))}
 
-        <TouchableOpacity onPress={addEmergencyContact}>
-          <Text style={styles.link}>
-            {t('profilePage.emergencyContacts.addButton')}
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('profilePage.section.medical')}</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={medicalNotes}
+              onChangeText={setMedicalNotes}
+              multiline
+              placeholder={t('profilePage.form.medicalNotes.placeholder')}
+              placeholderTextColor="#999"
+            />
+          </View>
 
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.disabled]}
-          onPress={saveProfile}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.saveText}>
-              {profileExists
-                ? t('profilePage.button.update')
-                : t('profilePage.button.save')}
-            </Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t('profilePage.emergencyContacts.title')}</Text>
+              <TouchableOpacity onPress={addEmergencyContact}>
+                <Text style={styles.addButton}>+ {t('profilePage.emergencyContacts.addButton')}</Text>
+              </TouchableOpacity>
+            </View>
 
-        <TouchableOpacity onPress={clearDatabase}>
-          <Text style={styles.danger}>
-            {t('profilePage.button.clearDatabase')}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {emergencyContacts.length === 0 ? (
+              <Text style={styles.emptyText}>
+                {t('profilePage.emergencyContacts.empty') || '尚未新增緊急聯絡人'}
+              </Text>
+            ) : (
+              emergencyContacts.map((contact, index) => (
+                <View key={index} style={styles.contactCard}>
+                  <Input
+                    label={t('profilePage.emergencyContacts.name')}
+                    placeholder={t('profilePage.form.placeholder.name')}
+                    value={contact.name}
+                    onChange={(v) => updateEmergencyContact(index, 'name', v)}
+                  />
+
+                  <Input
+                    label={t('profilePage.emergencyContacts.phone')}
+                    placeholder={t('profilePage.form.placeholder.phone')}
+                    value={contact.phone}
+                    onChange={(v) => updateEmergencyContact(index, 'phone', v)}
+                    keyboardType="phone-pad"
+                  />
+
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => removeEmergencyContact(index)}
+                  >
+                    <Text style={styles.removeText}>
+                      {t('profilePage.emergencyContacts.remove')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.saveButton, saving && styles.buttonDisabled]}
+            onPress={saveProfile}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {profileExists ? t('profilePage.button.update') : t('profilePage.button.save')}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={clearDatabase} style={styles.dangerLink}>
+            <Text style={styles.dangerText}>{t('profilePage.button.clearDatabase')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
-// Input 元件（保持不變）
 const Input = ({
   label,
+  placeholder,
   value,
   onChange,
-  multiline = false,
+  keyboardType = 'default',
+  autoCapitalize = 'words',
   required = false,
 }: {
   label: string;
+  placeholder?: string;
   value: string;
   onChange: (v: string) => void;
-  multiline?: boolean;
+  keyboardType?: 'default' | 'phone-pad' | 'email-address';
+  autoCapitalize?: 'none' | 'words';
   required?: boolean;
 }) => (
   <View style={styles.inputGroup}>
-    <Text style={styles.label}>
+    <Text style={styles.inputLabel}>
       {label}
-      {required && <Text style={styles.required}> *</Text>}
+      {required && <Text style={styles.requiredStar}> *</Text>}
     </Text>
     <TextInput
-      style={[styles.input, multiline && styles.textArea]}
+      style={styles.input}
+      placeholder={placeholder}
+      placeholderTextColor="#999"
       value={value}
       onChangeText={onChange}
-      multiline={multiline}
+      keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
     />
   </View>
 );
 
-/* -------------------------------------------------------
-   Styles (略微調整 required 星號顏色)
--------------------------------------------------------- */
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
   flex: { flex: 1 },
-  container: { padding: 20 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  section: { fontSize: 20, fontWeight: '600', marginVertical: 16 },
-  inputGroup: { marginBottom: 14 },
-  label: { fontSize: 14, marginBottom: 6 },
-  required: { color: '#F44336' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: 'white',
+  scrollContent: { padding: 20, paddingBottom: 40 },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16, color: '#666', fontSize: 16 },
+
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 24,
   },
-  textArea: { height: 100 },
-  contact: {
-    borderWidth: 1,
-    borderColor: '#eee',
-    padding: 12,
-    borderRadius: 8,
+
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
+  addButton: { color: '#007AFF', fontWeight: '600', fontSize: 15 },
+
+  contactCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
   },
-  link: { color: '#2196F3', textAlign: 'center', marginVertical: 10 },
-  saveButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
+
+  inputGroup: { marginBottom: 16 },
+  inputLabel: { fontSize: 14, color: '#555', marginBottom: 6, fontWeight: '500' },
+  requiredStar: { color: '#FF3B30' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
   },
-  disabled: { backgroundColor: '#aaa' },
-  saveText: { color: 'white', fontSize: 18, fontWeight: '600' },
-  danger: {
-    color: '#F44336',
+  textArea: { minHeight: 120, textAlignVertical: 'top' },
+
+  removeButton: { alignSelf: 'flex-end', marginTop: 8 },
+  removeText: { color: '#FF3B30', fontSize: 14 },
+
+  saveButton: {
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  buttonDisabled: { backgroundColor: '#A8A8A8' },
+  buttonText: { color: 'white', fontSize: 18, fontWeight: '600' },
+
+  dangerLink: { alignItems: 'center', marginTop: 8 },
+  dangerText: { color: '#FF3B30', fontSize: 16 },
+
+  emptyText: {
+    color: '#888',
+    fontSize: 15,
     textAlign: 'center',
-    marginTop: 20,
+    paddingVertical: 20,
   },
 });
 

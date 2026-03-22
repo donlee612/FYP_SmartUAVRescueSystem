@@ -3,15 +3,17 @@
     "currentPage": "當前頁面"
   },
   "footer": {
-    "mapPage": "地圖",
-    "sosPage": "SOS",
-    "settingPage": "設置"
+    "map": "地圖",
+    "sos": "SOS",
+    "settings": "設置"
   },
   "mapPage": {
-    "title": "地圖首頁",
-    "selectAction": "選擇操作",
-    "quickStart": "快速開始",
-    "booking": "行程預約",
+    "title": "地圖與救援服務",
+    "subtitle": "快速啟動或預約救援",
+    "selectAction": "選擇行動",
+    "chooseAction": "請選擇",
+    "quickStart": "快速啟動救援",
+    "booking": "預約服務",
     "cancel": "取消"
   },
   "sosPage": {
@@ -30,12 +32,25 @@
   },
   "settingPage": {
     "title": "設定",
-    "switchLanguage": "切換到{{language}}",
-    "language": {
-      "en": "英文",
-      "zh": "中文"
+    "profile": "個人資料",
+    "profileSubtitle": "姓名、電話、緊急聯絡人",
+    "language": "語言",
+    "aboutApp": "關於 MyDrone",
+    "section": {
+      "legal": "法律與政策"
     },
-    "goToProfile": "設定我的個人資料"
+    "about": {
+      "title": "關於 MyDrone",
+      "message": "MyDrone 救援無人機求助系統\n版本：1.0.0\n\n幫助用戶在緊急情況下快速求助，記錄路線並上傳位置資訊。\n\n設計與開發：你的團隊"
+    },
+    "terms": {
+      "title": "條款與條件",
+      "message": "歡迎使用 MyDrone。\n\n使用本應用即表示您同意遵守以下條款：\n- 不得濫用 SOS 緊急求助功能\n- 所有上傳的位置與個人資料僅用於救援目的\n- 本應用不承擔因誤用或網路問題導致的任何責任\n- 如有違反條款，本應用有權暫停或終止您的使用權限\n\n如有疑問，請聯絡我們。"
+    },
+    "privacy": {
+      "title": "隱私政策",
+      "message": "我們非常重視您的隱私。\n\n我們收集的資料包括：電話號碼、即時位置、緊急聯絡人、醫療備註等。\n\n資料用途：\n- 發送 SOS 求救請求\n- 記錄與顯示您的路線\n- 協助救援單位協調\n\n我們承諾：\n- 不會出售或出租您的個人資料\n- 採用加密與安全措施保護資料\n- 您有權隨時查閱、更正或要求刪除您的資料\n\n如需行使權利，請聯絡我們。"
+    }
   },
   "quickStartPage": {
     "title": "快速定位追蹤",
@@ -201,6 +216,11 @@
     },
     "loading": "載入個人檔案中…",
     "myDetails": "我的資料",
+    "section": {
+      "personal": "個人資料",
+      "medical": "醫療資訊",
+      "emergencyContacts": "緊急聯絡人"
+    },
     "form": {
       "firstName": {
         "label": "名字 *"
@@ -212,70 +232,70 @@
         "label": "性別 / 不願透露（可留空）"
       },
       "phone": {
-        "label": "電話號碼"
+        "label": "電話號碼 *"
       },
       "email": {
         "label": "電子郵件"
       },
       "medicalNotes": {
-        "label": "醫療備註"
+        "label": "醫療備註",
+        "placeholder": "過敏史、慢性病、正在服用的藥物、特殊醫療需求等（可留空）"
       },
       "placeholder": {
         "firstName": "請輸入你的名字",
         "lastName": "請輸入你的姓氏",
         "gender": "不願透露可留空",
         "phoneNumber": "例如：+852 9123 4567",
-        "name": "聯絡人姓名"
+        "name": "聯絡人姓名",
+        "phone": "聯絡人電話",
+        "email": "例如：example@email.com"
       }
     },
     "emergencyContacts": {
       "title": "緊急聯絡人",
-      "person": "聯絡人",
+      "addButton": "新增緊急聯絡人",
       "name": "姓名",
-      "phone": "電話",
-      "addButton": "新增緊急聯絡人"
+      "phone": "電話號碼",
+      "remove": "移除"
     },
     "button": {
-      "save": "儲存個人資料",
-      "update": "更新個人資料",
+      "save": "儲存個人檔案",
+      "update": "更新個人檔案",
       "cancel": "取消",
-      "clear": "清除",
-      "clearDatabase": "清除資料庫"
+      "clear": "清除所有資料",
+      "clearDatabase": "清除本地資料庫（測試用）"
     },
     "alert": {
       "loadFailed": {
         "title": "載入失敗",
-        "message": "無法載入個人檔案，請稍後再試"
+        "message": "無法載入個人檔案，請稍後再試或檢查網路。"
       },
-      "validation": {
-        "title": "必填欄位",
-        "nameRequired": "名字與姓氏為必填"
-      },
-      "updateSuccess": {
-        "title": "個人檔案已更新",
-        "message": "您的個人檔案已成功更新"
-      },
-      "createSuccess": {
-        "title": "個人檔案已建立",
-        "message": "您的救援個人檔案已準備好"
+      "saveSuccess": {
+        "title": "儲存成功",
+        "message": "你的救援個人檔案已更新，並同步至雲端。"
       },
       "saveFailed": {
         "title": "儲存失敗",
-        "message": "無法儲存個人檔案，請稍後再試"
+        "message": "儲存時發生錯誤，請檢查網路或稍後再試。"
       },
+      "validation": {
+        "title": "資料不完整",
+        "requiredFields": "名字、姓氏與電話號碼為必填項目。"
+      },
+      "syncSuccess": "已從雲端同步最新資料",
       "clearDatabase": {
-        "title": "清除資料庫",
-        "message": "確定要刪除所有個人檔案資料？"
+        "title": "確認清除資料？",
+        "message": "這將刪除本地所有個人檔案資料（雲端不會受影響），確定繼續？"
       },
       "clearSuccess": {
-        "title": "資料庫已清除"
+        "title": "清除成功",
+        "message": "本地資料已重置。"
       },
       "clearFailed": {
         "title": "清除失敗",
-        "message": "無法清除資料庫"
+        "message": "清除過程中發生錯誤。"
       }
-    },
-    "profileSaved": "個人資料已儲存！"
+    }
   },
   "pages": {
     "map": "地圖",

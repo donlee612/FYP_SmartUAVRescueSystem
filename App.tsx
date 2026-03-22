@@ -44,7 +44,10 @@ const App = () => {
           dbInitialized={dbInitialized}
         />
       )}
-      <Footer onSelectPage={setCurrentPage} />
+      <Footer 
+        currentPage={currentPage} 
+        onSelectPage={setCurrentPage} 
+      />
     </SafeAreaView>
   );
 };

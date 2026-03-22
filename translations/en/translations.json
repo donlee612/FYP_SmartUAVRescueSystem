@@ -3,15 +3,17 @@
     "currentPage": "Current Page"
   },
   "footer": {
-    "mapPage": "Map",
-    "sosPage": "SOS",
-    "settingPage": "Settings"
+    "map": "Map",
+    "sos": "SOS",
+    "settings": "Settings"
   },
   "mapPage": {
-    "title": "Map Home",
-    "selectAction": "Select Action",
-    "quickStart": "Quick Start",
-    "booking": "Booking",
+    "title": "Map & Rescue Services",
+    "subtitle": "Quick start or book a service",
+    "selectAction": "Choose Action",
+    "chooseAction": "Select an Option",
+    "quickStart": "Quick Start Rescue",
+    "booking": "Book Service",
     "cancel": "Cancel"
   },
   "sosPage": {
@@ -30,12 +32,25 @@
   },
   "settingPage": {
     "title": "Settings",
-    "switchLanguage": "Switch to {{language}}",
-    "language": {
-      "en": "English",
-      "zh": "Chinese"
+    "profile": "Profile",
+    "profileSubtitle": "Name, Phone, Emergency Contacts",
+    "language": "Language",
+    "aboutApp": "About MyDrone",
+    "section": {
+      "legal": "Legal & Policies"
     },
-    "goToProfile": "Edit My Profile"
+    "about": {
+      "title": "About MyDrone",
+      "message": "MyDrone Emergency Drone Rescue System\nVersion: 1.0.0\n\nHelps users request help quickly in emergencies, record routes and upload location data.\n\nDesigned and developed by your team"
+    },
+    "terms": {
+      "title": "Terms & Conditions",
+      "message": "Welcome to MyDrone.\n\nBy using this app, you agree to the following terms:\n- Do not abuse the SOS emergency function\n- All uploaded location and personal data are used solely for rescue purposes\n- The app assumes no liability for misuse or network-related issues\n- We reserve the right to suspend or terminate access for violations\n\nFor inquiries, please contact us."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "message": "We take your privacy seriously.\n\nWe collect: phone number, real-time location, emergency contacts, medical notes, etc.\n\nData usage:\n- Sending SOS rescue requests\n- Recording and displaying your routes\n- Assisting rescue coordination\n\nWe promise:\n- We do not sell or rent your personal data\n- We use encryption and security measures to protect data\n- You have the right to access, correct, or request deletion of your data at any time\n\nTo exercise your rights, please contact us."
+    }
   },
   "quickStartPage": {
     "title": "Quick Location Tracking",
@@ -199,16 +214,22 @@
       "existing": "My Rescue Profile",
       "new": "Set Up Rescue Profile"
     },
-    "loading": "Loading profile…",
+    "loading": "Loading profile...",
+    "myDetails": "My Details",
+    "section": {
+      "personal": "Personal Information",
+      "medical": "Medical Information",
+      "emergencyContacts": "Emergency Contacts"
+    },
     "form": {
       "firstName": {
         "label": "First Name *"
       },
       "lastName": {
-        "label": "Last Name"
+        "label": "Last Name *"
       },
       "gender": {
-        "label": "Gender / Prefer Not to Say (Leave Blank)"
+        "label": "Gender / Prefer not to say (optional)"
       },
       "phone": {
         "label": "Phone Number *"
@@ -217,37 +238,62 @@
         "label": "Email"
       },
       "medicalNotes": {
-        "label": "Medical Notes"
+        "label": "Medical Notes",
+        "placeholder": "Allergies, chronic conditions, current medications, special medical needs, etc. (optional)"
+      },
+      "placeholder": {
+        "firstName": "Enter your first name",
+        "lastName": "Enter your last name",
+        "gender": "Prefer not to say is okay",
+        "phoneNumber": "e.g. +852 9123 4567",
+        "name": "Contact Name",
+        "phone": "Contact Phone Number",
+        "email": "e.g. example@email.com"
       }
     },
     "emergencyContacts": {
       "title": "Emergency Contacts",
+      "addButton": "Add Emergency Contact",
       "name": "Name",
-      "phone": "Phone",
-      "addButton": "+ Add Emergency Contact"
+      "phone": "Phone Number",
+      "remove": "Remove"
     },
     "button": {
       "save": "Save Profile",
       "update": "Update Profile",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "clear": "Clear All Data",
+      "clearDatabase": "Clear Local Database (Test Only)"
     },
     "alert": {
-      "validation": {
-        "title": "Required Fields",
-        "requiredFields": "First name and phone number are required",
-        "nameRequired": "First name is required"
-      },
       "loadFailed": {
         "title": "Load Failed",
-        "message": "Unable to load profile from cloud. Please check your network."
+        "message": "Unable to load profile. Please try again or check your connection."
       },
       "saveSuccess": {
-        "title": "Save Successful",
-        "message": "Profile uploaded to cloud successfully"
+        "title": "Saved Successfully",
+        "message": "Your rescue profile has been updated and synced to the cloud."
       },
       "saveFailed": {
         "title": "Save Failed",
-        "message": "Failed to upload profile. Please check network or phone number format."
+        "message": "An error occurred while saving. Please check your connection."
+      },
+      "validation": {
+        "title": "Incomplete Information",
+        "requiredFields": "First name, last name, and phone number are required."
+      },
+      "syncSuccess": "Successfully synced latest data from cloud",
+      "clearDatabase": {
+        "title": "Confirm Clear Data?",
+        "message": "This will delete all local profile data (cloud data unaffected). Continue?"
+      },
+      "clearSuccess": {
+        "title": "Cleared Successfully",
+        "message": "Local data has been reset."
+      },
+      "clearFailed": {
+        "title": "Clear Failed",
+        "message": "An error occurred during clearing."
       }
     }
   },

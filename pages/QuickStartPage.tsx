@@ -3,18 +3,53 @@ import {
   View,
   Text,
   StyleSheet,
-  Button,
+  TouchableOpacity,
   Alert,
-  ScrollView
+  ScrollView,
+  ActivityIndicator,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Geolocation from '@react-native-community/geolocation';
 import MapView, { Polyline } from 'react-native-maps';
-import { Platform, PermissionsAndroid } from 'react-native';
 import { initDb, getDb } from '../services/db/initDb';
 
 // ────────────────────────────────────────────────
-// SQLite Helper（保持不變）
+// 顏色與樣式常數（方便未來統一調整）
+const COLORS = {
+  primary: '#3B82F6',       // blue-500
+  primaryDark: '#1D4ED8',
+  success: '#10B981',       // green-500
+  danger: '#EF4444',
+  background: '#F9FAFB',
+  card: '#FFFFFF',
+  text: '#111827',
+  textSecondary: '#6B7280',
+  border: '#E5E7EB',
+  mapBorder: '#BFDBFE',
+  lightBg: '#F0F9FF',
+  header: '#000000',
+};
+
+const SHADOW_SM = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 2,
+};
+
+const SHADOW_MD = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1,
+  shadowRadius: 8,
+  elevation: 4,
+};
+
+// ────────────────────────────────────────────────
+// SQLite Helper（保持原樣）
 // ────────────────────────────────────────────────
 class LocationTrackerDB {
   static async addLocation(
@@ -130,10 +165,10 @@ const QuickStartPage = () => {
   }, []);
 
   // ────────────────────────────────────────────────
-  // 工具函式（全部定義在這裡）
+  // 工具函式
   // ────────────────────────────────────────────────
   const calculateDistance = (points: Array<{ lat: number; lng: number }>): string => {
-    if (points.length < 2) return t('quickStartPage.stats.zeroDistance');
+    if (points.length < 2) return '0m';
     let total = 0;
     for (let i = 1; i < points.length; i++) {
       const p1 = points[i - 1];
@@ -143,16 +178,16 @@ const QuickStartPage = () => {
       total += Math.sqrt(latDiff ** 2 + lngDiff ** 2);
     }
     return total < 1000
-      ? t('quickStartPage.stats.meters', { value: Math.round(total) })
-      : t('quickStartPage.stats.kilometers', { value: (total / 1000).toFixed(1) });
+      ? `${Math.round(total)}m`
+      : `${(total / 1000).toFixed(1)}km`;
   };
 
   const calculateSessionDuration = (locs: Array<{ timestamp: string }>): string => {
-    if (locs.length < 2) return t('quickStartPage.stats.zeroDuration');
+    if (locs.length < 2) return '0 min';
     const start = new Date(locs[0].timestamp);
     const end = new Date(locs[locs.length - 1].timestamp);
     const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
-    return t('quickStartPage.stats.minutes', { value: minutes });
+    return `${minutes} min`;
   };
 
   const updateStats = (locs: typeof locations) => {
@@ -352,7 +387,7 @@ const QuickStartPage = () => {
         return;
       }
 
-      const normalizedPhone = phone;
+      const normalizedPhone = phone.replace(/[^0-9]/g, '');
 
       const startTime = new Date().toISOString();
 
@@ -395,29 +430,32 @@ const QuickStartPage = () => {
 
     const phone = await getUserPhone();
     if (phone && sessionId) {
-      const normalizedPhone = phone;
+      const normalizedPhone = phone.replace(/[^0-9]/g, '');
 
-      // 先讀取現有 points
-      const currentDataRes = await fetch(
-        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/QuickStartSessions/${sessionId}.json`
-      );
-      const currentData = await currentDataRes.json() || {};
+      try {
+        const currentDataRes = await fetch(
+          `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/QuickStartSessions/${sessionId}.json`
+        );
+        const currentData = await currentDataRes.json() || {};
 
-      const points = currentData.points || {};
+        const points = currentData.points || {};
 
-      await fetch(
-        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/QuickStartSessions/${sessionId}.json`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            points,           // 第一個屬性
-            endTime: new Date().toISOString(),
-            startTime: currentData.startTime || new Date().toISOString(),
-            status: 'COMPLETED'
-          })
-        }
-      );
+        await fetch(
+          `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/QuickStartSessions/${sessionId}.json`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              points,
+              endTime: new Date().toISOString(),
+              startTime: currentData.startTime || new Date().toISOString(),
+              status: 'COMPLETED'
+            })
+          }
+        );
+      } catch (err) {
+        console.error('Failed to finalize session on Firebase:', err);
+      }
     }
 
     currentSessionRef.current = null;
@@ -436,114 +474,142 @@ const QuickStartPage = () => {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>{t('quickStartPage.title')}</Text>
         <Text style={styles.subtitle}>{t('quickStartPage.subtitle')}</Text>
-        {!appReady && <Text style={styles.warning}>{t('quickStartPage.initializing')}</Text>}
+        {!appReady && (
+          <View style={styles.initializingContainer}>
+            <ActivityIndicator size="small" color="white" />
+            <Text style={styles.initializingText}>{t('quickStartPage.initializing')}</Text>
+          </View>
+        )}
       </View>
 
-      <View style={[styles.statusPanel, tracking ? styles.statusActive : styles.statusInactive]}>
-        <View style={styles.statusIndicator}>
-          <View style={[styles.statusLight, tracking ? styles.lightActive : styles.lightInactive]} />
+      {/* 狀態卡片 */}
+      <View style={[styles.statusCard, tracking ? styles.statusActive : styles.statusInactive, SHADOW_MD]}>
+        <View style={styles.statusRow}>
+          <View style={[
+            styles.statusLight,
+            { backgroundColor: tracking ? COLORS.success : COLORS.danger }
+          ]} />
           <Text style={styles.statusText}>
             {tracking ? t('quickStartPage.status.active') : t('quickStartPage.status.inactive')}
           </Text>
         </View>
-        <View style={styles.sessionIdContainer}>
-          <Text style={styles.sessionIdLabel}>{t('quickStartPage.session.label')}</Text>
-          <Text style={styles.sessionIdValue}>
-            {sessionId || (tracking ? t('quickStartPage.session.generating') : t('quickStartPage.session.notStarted'))}
+
+        <View style={styles.sessionInfoRow}>
+          <Text style={styles.sessionLabel}>{t('quickStartPage.session.label')}</Text>
+          <Text style={styles.sessionValue}>
+            {sessionId || (tracking ? t('quickStartPage.session.generating') : '—')}
           </Text>
         </View>
+
         {currentRoute && (
-          <Text style={styles.routeId}>
-            {t('quickStartPage.route.label')}: {currentRoute.id}
+          <Text style={styles.routeInfo}>
+            Route #{currentRoute.id}
           </Text>
         )}
+
+        <View style={styles.uploadStat}>
+          <Text style={styles.uploadText}>
+            Firebase 上傳: {firebaseUploadCount}
+            {lastFirebaseUpload ? ` • 最後: ${lastFirebaseUpload}` : ''}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.databaseStatus}>
-        <Text style={styles.databaseStat}>
-          {t('quickStartPage.firebase.uploads')}: {firebaseUploadCount}
-          {lastFirebaseUpload ? ` • ${t('quickStartPage.firebase.last')}: ${lastFirebaseUpload}` : ''}
-        </Text>
-      </View>
-
-      <View style={styles.metricsPanel}>
+      {/* 數據面板 */}
+      <View style={[styles.metricsCard, SHADOW_MD]}>
         <View style={styles.metricsGrid}>
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>{t('quickStartPage.stats.points')}</Text>
-            <Text style={styles.metricValue}>{stats.totalPoints}</Text>
+            <Text style={[styles.metricValue, { color: COLORS.primary }]}>{stats.totalPoints}</Text>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>{t('quickStartPage.stats.distance')}</Text>
-            <Text style={styles.metricValue}>{stats.distance}</Text>
+            <Text style={[styles.metricValue, { color: COLORS.primary }]}>{stats.distance}</Text>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>{t('quickStartPage.stats.duration')}</Text>
-            <Text style={styles.metricValue}>{stats.sessionDuration}</Text>
+            <Text style={[styles.metricValue, { color: COLORS.primary }]}>{stats.sessionDuration}</Text>
           </View>
         </View>
+
         {lastUpdateTime && (
-          <Text style={styles.lastUpdate}>
-            {t('quickStartPage.lastUpdate')}: {lastUpdateTime}
+          <Text style={styles.lastUpdateText}>
+            最後更新：{lastUpdateTime}
           </Text>
         )}
       </View>
 
-      <View style={styles.controlPanel}>
-        <View style={[styles.buttonContainer, !appReady && styles.buttonDisabled]}>
-          <Button
-            title={tracking ? t('quickStartPage.button.stop') : t('quickStartPage.button.start')}
-            onPress={tracking ? stopTracking : startTracking}
-            color={tracking ? '#F44336' : '#4CAF50'}
-            disabled={!appReady}
-          />
-        </View>
-        {!appReady && (
-          <Text style={styles.initializingText}>{t('quickStartPage.initializing')}</Text>
-        )}
+      {/* 主要按鈕 */}
+      <View style={styles.controlSection}>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            tracking ? styles.buttonStop : styles.buttonStart,
+            !appReady && styles.buttonDisabled,
+            SHADOW_MD,
+          ]}
+          onPress={tracking ? stopTracking : startTracking}
+          disabled={!appReady}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.buttonText}>
+            {tracking ? t('quickStartPage.button.stop') : t('quickStartPage.button.start')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
+      {/* 地圖區域 */}
       <View style={styles.mapSection}>
         <Text style={styles.sectionTitle}>{t('quickStartPage.map.title')}</Text>
-        {locations.length > 1 ? (
-          <MapView
-            style={styles.mapDisplay}
-            initialRegion={{
-              latitude: locations[0].lat,
-              longitude: locations[0].lng,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01
-            }}
-          >
-            <Polyline
-              coordinates={polylineCoords}
-              strokeColor="#2196F3"
-              strokeWidth={4}
-            />
-          </MapView>
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <Text style={styles.placeholderText}>{t('quickStartPage.map.noData')}</Text>
-            <Text style={styles.placeholderSubtext}>
-              {tracking
-                ? t('quickStartPage.map.waitingForLocation')
-                : t('quickStartPage.map.promptToStart')}
-            </Text>
-          </View>
-        )}
+        <View style={[styles.mapContainer, SHADOW_MD]}>
+          {locations.length > 1 ? (
+            <MapView
+              style={StyleSheet.absoluteFillObject}
+              initialRegion={{
+                latitude: locations[0].lat,
+                longitude: locations[0].lng,
+                latitudeDelta: 0.018,
+                longitudeDelta: 0.018,
+              }}
+              showsUserLocation={true}
+              showsMyLocationButton={true}
+              showsCompass={true}
+            >
+              <Polyline
+                coordinates={polylineCoords}
+                strokeColor={COLORS.primary}
+                strokeWidth={5}
+                lineCap="round"
+                lineJoin="round"
+              />
+            </MapView>
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <Text style={styles.placeholderMain}>
+                {tracking ? '等待定位資料...' : '點擊「開始」以記錄軌跡'}
+              </Text>
+              <Text style={styles.placeholderSub}>
+                {t('quickStartPage.map.noData')}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
+      {/* 最近記錄（可選展開） */}
       {locations.length > 0 && (
-        <View style={styles.historyPanel}>
-          <Text style={styles.sectionTitle}>{t('quickStartPage.history.title')}</Text>
-          {locations.slice(-3).reverse().map((loc, i) => (
-            <View key={i} style={styles.positionItem}>
-              <Text style={styles.positionTime}>{loc.timestamp}</Text>
-              <Text style={styles.positionCoordinates}>
+        <View style={[styles.historyCard, SHADOW_MD]}>
+          <Text style={styles.sectionTitle}>最近位置</Text>
+          {locations.slice(-4).reverse().map((loc, i) => (
+            <View key={i} style={styles.historyItem}>
+              <Text style={styles.historyTime}>{loc.timestamp}</Text>
+              <Text style={styles.historyCoords}>
                 {loc.lat.toFixed(6)}, {loc.lng.toFixed(6)}
               </Text>
             </View>
@@ -555,107 +621,233 @@ const QuickStartPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  header: { padding: 20, backgroundColor: '#2196F3', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', color: 'white', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.9)' },
-  warning: { fontSize: 12, color: '#FFEB3B', marginTop: 8, fontStyle: 'italic' },
-
-  statusPanel: {
-    margin: 16,
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  statusActive: { backgroundColor: '#E8F5E9', borderLeftWidth: 4, borderLeftColor: '#4CAF50' },
-  statusInactive: { backgroundColor: '#FFEBEE', borderLeftWidth: 4, borderLeftColor: '#F44336' },
-  statusIndicator: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  statusLight: { width: 12, height: 12, borderRadius: 6, marginRight: 10 },
-  lightActive: { backgroundColor: '#4CAF50' },
-  lightInactive: { backgroundColor: '#F44336' },
-  statusText: { fontSize: 16, fontWeight: '600', color: '#333' },
-  sessionIdContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  sessionIdLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginRight: 8 },
-  sessionIdValue: { fontSize: 14, fontWeight: 'bold', color: '#2196F3', fontFamily: 'monospace' },
-  routeId: { fontSize: 12, color: '#666', fontFamily: 'monospace', marginTop: 4 },
-
-  databaseStatus: {
-    backgroundColor: '#f5f5f5',
-    padding: 10,
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0'
+  header: {
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.header,
+    alignItems: 'center',
   },
-  databaseStat: { fontSize: 12, color: '#666', fontFamily: 'monospace' },
-
-  metricsPanel: {
-    backgroundColor: 'white',
-    marginHorizontal: 16,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: 6,
   },
-  metricsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  metricItem: { alignItems: 'center', flex: 1 },
-  metricLabel: { fontSize: 12, color: '#666', marginBottom: 4 },
-  metricValue: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  metricDivider: { width: 1, backgroundColor: '#e0e0e0', marginHorizontal: 8 },
-  lastUpdate: { fontSize: 12, color: '#888', textAlign: 'center', marginTop: 8 },
-
-  controlPanel: { marginHorizontal: 16, marginBottom: 20 },
-  buttonContainer: { opacity: 1 },
-  buttonDisabled: { opacity: 0.6 },
+  subtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.88)',
+    textAlign: 'center',
+  },
+  initializingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
   initializingText: {
-    fontSize: 12,
-    color: '#FF9800',
+    color: 'white',
+    marginLeft: 10,
+    fontSize: 14,
+  },
+
+  // 狀態卡片
+  statusCard: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 20,
+  },
+  statusActive: {
+    backgroundColor: '#F0FDF4',
+    borderLeftWidth: 5,
+    borderLeftColor: COLORS.success,
+  },
+  statusInactive: {
+    backgroundColor: '#FEF2F2',
+    borderLeftWidth: 5,
+    borderLeftColor: COLORS.danger,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statusLight: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    marginRight: 12,
+    borderWidth: 3,
+    borderColor: 'white',
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  sessionInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sessionLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginRight: 10,
+  },
+  sessionValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.primary,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  routeInfo: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+  },
+  uploadStat: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  uploadText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+
+  // 數據卡片
+  metricsCard: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: 'white',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  metricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  metricLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  metricDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 12,
+  },
+  lastUpdateText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 8,
-    fontStyle: 'italic'
   },
 
-  mapSection: { marginHorizontal: 16, marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 12 },
-  mapDisplay: { height: 250, borderRadius: 12, overflow: 'hidden' },
+  // 主要按鈕
+  controlSection: {
+    marginHorizontal: 20,
+    marginBottom: 28,
+  },
+  actionButton: {
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonStart: {
+    backgroundColor: COLORS.success,
+  },
+  buttonStop: {
+    backgroundColor: COLORS.danger,
+  },
+  buttonDisabled: {
+    opacity: 0.55,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+
+  // 地圖
+  mapSection: {
+    marginHorizontal: 20,
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  mapContainer: {
+    height: 340,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.mapBorder,
+    backgroundColor: COLORS.lightBg,
+  },
   mapPlaceholder: {
-    height: 250,
-    borderRadius: 12,
-    backgroundColor: '#f0f0f0',
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderStyle: 'dashed'
+    paddingHorizontal: 40,
   },
-  placeholderText: { fontSize: 16, color: '#999', marginBottom: 4 },
-  placeholderSubtext: { fontSize: 12, color: '#aaa' },
+  placeholderMain: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#4B5563',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  placeholderSub: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
 
-  historyPanel: {
+  // 歷史記錄
+  historyCard: {
+    marginHorizontal: 20,
+    marginBottom: 40,
+    padding: 20,
+    borderRadius: 20,
     backgroundColor: 'white',
-    marginHorizontal: 16,
-    marginBottom: 30,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
   },
-  positionItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  positionTime: { fontSize: 12, color: '#666', marginBottom: 2 },
-  positionCoordinates: { fontSize: 13, fontWeight: '600', color: '#333' }
+  historyItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  historyTime: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  historyCoords: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
 });
 
 export default QuickStartPage;
