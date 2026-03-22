@@ -3,65 +3,306 @@
     "currentPage": "Current Page"
   },
   "footer": {
-    "mapPage": "Map Page",
-    "sosPage": "SOS Page",
-    "settingPage": "Settings Page"
+    "map": "Map",
+    "sos": "SOS",
+    "settings": "Settings"
   },
   "mapPage": {
-    "title": "This is Map Page",
-    "selectAction": "Select Action",
-    "quickStart": "Quick Start",
-    "booking": "Booking",
+    "title": "Map & Rescue Services",
+    "subtitle": "Quick start or book a service",
+    "selectAction": "Choose Action",
+    "chooseAction": "Select an Option",
+    "quickStart": "Quick Start Rescue",
+    "booking": "Book Service",
     "cancel": "Cancel"
   },
   "sosPage": {
-    "title": "SOS Emergency",
-    "description": "Tap the button below to quickly call emergency number 999",
-    "callButton": "CALL 999 NOW",
-    "errorTitle": "Unable to Call",
+    "title": "Emergency SOS",
+    "legalWarning": "Anyone Who Abuses This Emergency Service May Incurr Legal Liabilities",
+    "confirmText": "Please confirm this is a real emergency.\nUpon clicking the SOS button, the 999 Report Centre may contact you.",
+    "sosButton": "SOS",
+    "callButton": "Call 999 Now",
+    "successTitle": "Success",
+    "successMessage": "Rescue signal sent!",
+    "errorTitle": "Error",
+    "requestFailed": "Failed to send rescue signal. Please try again.",
+    "callFailed": "Failed to open dialer. Please try again.",
     "noPhoneApp": "No phone app available on this device",
-    "callFailed": "Failed to open dialer. Please try again."
+    "slogan": "Help is just a Ping Away"
   },
   "settingPage": {
-    "title": "This is Settings Page",
-    "switchLanguage": "Switch to {language}",
-    "language": {
-      "en": "English",
-      "zh": "Chinese"
+    "title": "Settings",
+    "profile": "Profile",
+    "profileSubtitle": "Name, Phone, Emergency Contacts",
+    "language": "Language",
+    "aboutApp": "About MyDrone",
+    "section": {
+      "legal": "Legal & Policies"
     },
-    "goToProfile": "Edit My Profile"
+    "about": {
+      "title": "About MyDrone",
+      "message": "MyDrone Emergency Drone Rescue System\nVersion: 1.0.0\n\nHelps users request help quickly in emergencies, record routes and upload location data.\n\nDesigned and developed by your team"
+    },
+    "terms": {
+      "title": "Terms & Conditions",
+      "message": "Welcome to MyDrone.\n\nBy using this app, you agree to the following terms:\n- Do not abuse the SOS emergency function\n- All uploaded location and personal data are used solely for rescue purposes\n- The app assumes no liability for misuse or network-related issues\n- We reserve the right to suspend or terminate access for violations\n\nFor inquiries, please contact us."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "message": "We take your privacy seriously.\n\nWe collect: phone number, real-time location, emergency contacts, medical notes, etc.\n\nData usage:\n- Sending SOS rescue requests\n- Recording and displaying your routes\n- Assisting rescue coordination\n\nWe promise:\n- We do not sell or rent your personal data\n- We use encryption and security measures to protect data\n- You have the right to access, correct, or request deletion of your data at any time\n\nTo exercise your rights, please contact us."
+    }
   },
   "quickStartPage": {
-    "title": "This is Quick Start Page",
+    "title": "Quick Location Tracking",
+    "subtitle": "Records every 5 seconds",
     "quickStart": "Quick Start",
     "endTracking": "End Tracking",
-    "locationFailed": "Location failed",
-    "startTracking": "Started tracking every 5 minutes",
+    "startTracking": "Started tracking every 5 seconds",
     "trackingEnded": "Tracking ended",
-    "showRoute": "Stopped tracking and showing route"
+    "showRoute": "Stopped tracking and showing route",
+    "status": {
+      "active": "Tracking",
+      "inactive": "Not Tracking"
+    },
+    "session": {
+      "label": "Session ID",
+      "generating": "Generating...",
+      "notStarted": "Not started"
+    },
+    "route": {
+      "label": "Route ID"
+    },
+    "button": {
+      "start": "Start Tracking",
+      "stop": "Stop Tracking"
+    },
+    "map": {
+      "title": "Route Map",
+      "noData": "No route data yet",
+      "waitingForLocation": "Waiting for location...",
+      "promptToStart": "Tap 'Start Tracking' to view map"
+    },
+    "history": {
+      "title": "Recent Records"
+    },
+    "stats": {
+      "points": "Points",
+      "distance": "Distance",
+      "duration": "Duration",
+      "zeroDistance": "0m",
+      "zeroDuration": "0 min",
+      "meters": "{{value}}m",
+      "kilometers": "{{value}}km",
+      "minutes": "{{value}} min"
+    },
+    "firebase": {
+      "uploads": "Uploads",
+      "last": "Last"
+    },
+    "lastUpdate": "Last Update",
+    "permission": {
+      "title": "Location Permission",
+      "message": "This app needs your location permission to track routes.",
+      "neutral": "Ask Me Later",
+      "negative": "Cancel",
+      "positive": "OK"
+    },
+    "alert": {
+      "initFailed": {
+        "title": "Initialization Failed",
+        "message": "Database failed to start. Tracking may not save records."
+      },
+      "permissionDenied": {
+        "title": "Permission Denied",
+        "message": "Location permission denied. Cannot start tracking."
+      },
+      "locationError": {
+        "title": "Location Error",
+        "default": "Unable to get location",
+        "permission": "Location permission denied",
+        "unavailable": "Location service unavailable. Check GPS or network.",
+        "timeout": "Location request timed out"
+      },
+      "trackingStarted": {
+        "title": "Tracking Started",
+        "message": "Session ID: {{sessionId}}\nRecording every 5 seconds"
+      },
+      "trackingStopped": {
+        "title": "Tracking Stopped",
+        "message": "Recorded {{count}} points this session"
+      },
+      "startFailed": {
+        "title": "Start Failed",
+        "message": "Failed to create tracking route"
+      }
+    },
+    "initializing": "Initializing..."
   },
   "eventBookingPage": {
-    "title": "This is Event Booking Page"
+    "title": "Event Booking Management",
+    "subtitle": "Booked Events & Add New Route",
+    "loading": "Loading...",
+    "events": {
+      "title": "Booked Events ({{count}})",
+      "empty": "No booked events yet",
+      "date": "Date",
+      "time": "Time",
+      "waypoints": "Route Points"
+    },
+    "button": {
+      "addNew": "+ Add New Event",
+      "cancelAdd": "Cancel Add",
+      "cancelEdit": "Cancel Edit",
+      "removeLast": "Remove Last Point",
+      "save": "Save Event to Cloud",
+      "update": "Update Event",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "titlePlaceholder": "Event Name (e.g. Shatin Rescue Drill)",
+      "date": "Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "map": {
+        "title": "Route Planning (Long press map to add points, {{count}} points added)",
+        "marker": "Point {{index}}"
+      },
+      "editTitle": "Edit Event",
+      "addTitle": "Add New Event"
+    },
+    "alert": {
+      "loadFailed": {
+        "title": "Error",
+        "message": "Failed to load events from Firebase"
+      },
+      "noPhone": {
+        "title": "No Phone Number Set",
+        "message": "Please set your phone number in Profile first"
+      },
+      "validation": {
+        "title": "Required",
+        "titleRequired": "Please enter event name",
+        "waypointsRequired": "Please mark at least start and end points on the map"
+      },
+      "saveSuccess": {
+        "title": "Success",
+        "message": "Event added and synced to cloud",
+        "updated": "Event updated and synced to cloud"
+      },
+      "saveFailed": {
+        "title": "Error",
+        "message": "Failed to save event. Please try again later."
+      },
+      "deleteConfirm": {
+        "title": "Confirm Delete",
+        "message": "Are you sure you want to delete this event? This action cannot be undone."
+      },
+      "deleteSuccess": {
+        "title": "Delete Successful",
+        "message": "Event has been deleted"
+      },
+      "deleteFailed": {
+        "title": "Delete Failed",
+        "message": "Failed to delete event. Please try again later."
+      }
+    }
   },
   "profilePage": {
-    "title": "MyDrone",
+    "title": {
+      "existing": "My Rescue Profile",
+      "new": "Set Up Rescue Profile"
+    },
+    "loading": "Loading profile...",
     "myDetails": "My Details",
-    "firstName": "First Name",
-    "lastName": "Last Name",
-    "gender": "Gender / Prefer Not To Say (Leave It Blank)",
-    "phoneNumber": "Phone Number",
-    "emergencyContacts": "Emergency Contacts",
-    "person": "Details of Person",
-    "name": "Name",
-    "addNewEmergencyContact": "Add New Emergency Contact",
-    "setUpProfile": "Set Up Profile",
-    "profileSaved": "Profile saved!",
-    "placeholder": {
-      "firstName": "Enter your first name",
-      "lastName": "Enter your last name",
-      "gender": "Leave blank if prefer not to say",
-      "phoneNumber": "e.g. +852 9123 4567",
-      "name": "Contact name"
+    "section": {
+      "personal": "Personal Information",
+      "medical": "Medical Information",
+      "emergencyContacts": "Emergency Contacts"
+    },
+    "form": {
+      "firstName": {
+        "label": "First Name *"
+      },
+      "lastName": {
+        "label": "Last Name *"
+      },
+      "gender": {
+        "label": "Gender / Prefer not to say (optional)"
+      },
+      "phone": {
+        "label": "Phone Number *"
+      },
+      "email": {
+        "label": "Email"
+      },
+      "medicalNotes": {
+        "label": "Medical Notes",
+        "placeholder": "Allergies, chronic conditions, current medications, special medical needs, etc. (optional)"
+      },
+      "placeholder": {
+        "firstName": "Enter your first name",
+        "lastName": "Enter your last name",
+        "gender": "Prefer not to say is okay",
+        "phoneNumber": "e.g. +852 9123 4567",
+        "name": "Contact Name",
+        "phone": "Contact Phone Number",
+        "email": "e.g. example@email.com"
+      }
+    },
+    "emergencyContacts": {
+      "title": "Emergency Contacts",
+      "addButton": "Add Emergency Contact",
+      "name": "Name",
+      "phone": "Phone Number",
+      "remove": "Remove"
+    },
+    "button": {
+      "save": "Save Profile",
+      "update": "Update Profile",
+      "cancel": "Cancel",
+      "clear": "Clear All Data",
+      "clearDatabase": "Clear Local Database (Test Only)"
+    },
+    "alert": {
+      "loadFailed": {
+        "title": "Load Failed",
+        "message": "Unable to load profile. Please try again or check your connection."
+      },
+      "saveSuccess": {
+        "title": "Saved Successfully",
+        "message": "Your rescue profile has been updated and synced to the cloud."
+      },
+      "saveFailed": {
+        "title": "Save Failed",
+        "message": "An error occurred while saving. Please check your connection."
+      },
+      "validation": {
+        "title": "Incomplete Information",
+        "requiredFields": "First name, last name, and phone number are required."
+      },
+      "syncSuccess": "Successfully synced latest data from cloud",
+      "clearDatabase": {
+        "title": "Confirm Clear Data?",
+        "message": "This will delete all local profile data (cloud data unaffected). Continue?"
+      },
+      "clearSuccess": {
+        "title": "Cleared Successfully",
+        "message": "Local data has been reset."
+      },
+      "clearFailed": {
+        "title": "Clear Failed",
+        "message": "An error occurred during clearing."
+      }
     }
+  },
+  "pages": {
+    "map": "Map",
+    "sos": "SOS",
+    "settings": "Settings",
+    "quickStart": "Quick Track",
+    "booking": "Booking",
+    "profile": "Profile"
   }
 }

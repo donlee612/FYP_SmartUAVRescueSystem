@@ -31,7 +31,7 @@ const Content: React.FC<ContentProps> = ({ currentPage, onSelectPage }) => {
 
 const styles = StyleSheet.create({
   content: {
-    flex: 0.8,
+    flex: 0.95,
   },
 });
 

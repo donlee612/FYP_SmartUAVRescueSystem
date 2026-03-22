@@ -1,23 +1,48 @@
+// Header.tsx - 簡化，只顯示標題（但建議之後用 navigation header 取代）
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-const Header = () => {
+interface HeaderProps {
+  currentPage: number;
+}
+
+const Header: React.FC<HeaderProps> = ({ currentPage }) => {
   const { t } = useTranslation();
+
+  const getPageTitleKey = () => {
+    switch (currentPage) {
+      case 1: return 'pages.map';
+      case 2: return 'pages.sos';
+      case 3: return 'pages.settings';
+      case 4: return 'pages.quickStart';
+      case 5: return 'pages.booking';
+      case 6: return 'pages.profile';
+      default: return 'pages.map';
+    }
+  };
+
   return (
     <View style={styles.header}>
-      <Text>{t('header.currentPage')}</Text>
+      <Text style={styles.title}>{t(getPageTitleKey())}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   header: {
-    flex: 0.1,
-    justifyContent: 'center',
+    height: Platform.OS === 'ios' ? 130 : 100, // 考慮 safe area
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: '#ff0000ff',
-    paddingTop: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingBottom: 10,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
   },
 });
 

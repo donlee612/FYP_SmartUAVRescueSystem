@@ -35,8 +35,8 @@ const App = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Header />
+    <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
+      <Header currentPage={currentPage} />
       {dbInitialized && (
         <Content
           currentPage={currentPage}
@@ -44,7 +44,10 @@ const App = () => {
           dbInitialized={dbInitialized}
         />
       )}
-      <Footer onSelectPage={setCurrentPage} />
+      <Footer 
+        currentPage={currentPage} 
+        onSelectPage={setCurrentPage} 
+      />
     </SafeAreaView>
   );
 };

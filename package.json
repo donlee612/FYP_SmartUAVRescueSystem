@@ -24,6 +24,7 @@
     "react": "19.1.0",
     "react-i18next": "^15.7.3",
     "react-native": "0.80.2",
+    "react-native-date-picker": "^5.0.13",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.27.2",
     "react-native-maps": "^1.26.0",

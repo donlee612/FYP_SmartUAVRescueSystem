@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -24,7 +25,6 @@ interface EmergencyContact {
 const ProfilePage = () => {
   const { t } = useTranslation();
 
-  // Profile fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState('');
@@ -32,20 +32,15 @@ const ProfilePage = () => {
   const [email, setEmail] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
 
-  // Emergency contacts
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
-    { name: '', phone: '' },
-  ]);
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
 
-  // State
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profileExists, setProfileExists] = useState(false);
   const [profileId, setProfileId] = useState<number | null>(null);
 
-  /* -------------------------------------------------------
-     Load profile on mount
-  -------------------------------------------------------- */
+  const normalizePhoneForKey = (phone: string) => phone.replace(/[^0-9]/g, '');
+
   useEffect(() => {
     loadProfile();
   }, []);
@@ -56,307 +51,521 @@ const ProfilePage = () => {
       await initDb();
       const db = getDb();
 
-      const result = await db.executeSql(
-        'SELECT * FROM user ORDER BY id DESC LIMIT 1'
-      );
+      const result = await db.executeSql('SELECT * FROM user ORDER BY id DESC LIMIT 1');
 
+      let localData = null;
       if (result[0].rows.length > 0) {
-        const user = result[0].rows.item(0);
+        localData = result[0].rows.item(0);
 
-        setFirstName(user.first_name || '');
-        setLastName(user.last_name || '');
-        setGender(user.gender || '');
-        setPhoneNumber(user.phone || '');
-        setEmail(user.email || '');
-        setMedicalNotes(user.medical_notes || '');
-        setProfileId(user.id);
+        setFirstName(localData.first_name || '');
+        setLastName(localData.last_name || '');
+        setGender(localData.gender || '');
+        setPhoneNumber(localData.phone || '');
+        setEmail(localData.email || '');
+        setMedicalNotes(localData.medical_notes || '');
+        setProfileId(localData.id);
         setProfileExists(true);
 
-        if (user.emergency_contacts) {
+        // 處理本地 emergency_contacts（兼容字串格式）
+        let parsedContacts: EmergencyContact[] = [];
+        if (localData.emergency_contacts) {
           try {
-            const parsed = JSON.parse(user.emergency_contacts);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setEmergencyContacts(parsed);
+            let raw = localData.emergency_contacts;
+            if (typeof raw === 'string') {
+              raw = JSON.parse(raw);
             }
-          } catch {}
+            if (Array.isArray(raw)) {
+              parsedContacts = raw
+                .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+                .map((item) => ({
+                  name: String((item as Record<string, unknown>).name ?? ''),
+                  phone: String((item as Record<string, unknown>).phone ?? ''),
+                }))
+                .filter((c) => c.name.trim() || c.phone.trim());
+            }
+          } catch (e) {
+            console.warn('本地 emergency_contacts 解析失敗:', e);
+          }
+        }
+        setEmergencyContacts(parsedContacts);
+      } else {
+        setProfileExists(false);
+        setEmergencyContacts([]);
+      }
+
+      // 從 Firebase 強制拉取並覆蓋
+      if (localData?.phone) {
+        const normalized = normalizePhoneForKey(localData.phone);
+        try {
+          const res = await fetch(
+            `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalized}/profile.json`
+          );
+
+          if (!res.ok) {
+            console.warn('Firebase fetch 失敗:', res.status);
+            return;
+          }
+
+          const fbData = await res.json();
+
+          if (fbData && typeof fbData === 'object') {
+            // 覆蓋顯示
+            setFirstName(fbData.first_name || localData.first_name || '');
+            setLastName(fbData.last_name || localData.last_name || '');
+            setGender(fbData.gender || localData.gender || '');
+            setPhoneNumber(fbData.phone || localData.phone || '');
+            setEmail(fbData.email || localData.email || '');
+            setMedicalNotes(fbData.medical_notes || localData.medical_notes || '');
+
+            // 處理雲端 emergency_contacts（兼容字串格式）
+            let fbContacts: EmergencyContact[] = [];
+            let fbEmergency = fbData.emergency_contacts;
+
+            if (typeof fbEmergency === 'string') {
+              try {
+                fbEmergency = JSON.parse(fbEmergency);
+              } catch (parseErr) {
+                console.warn('雲端 emergency_contacts 字串解析失敗:', parseErr);
+                fbEmergency = [];
+              }
+            }
+
+            if (Array.isArray(fbEmergency)) {
+              fbContacts = fbEmergency
+                .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+                .map((item) => ({
+                  name: String((item as Record<string, unknown>).name ?? ''),
+                  phone: String((item as Record<string, unknown>).phone ?? ''),
+                }))
+                .filter((c) => c.name.trim() || c.phone.trim());
+            }
+
+            setEmergencyContacts(fbContacts);
+
+            // 同步更新本地
+            await db.executeSql(
+              `UPDATE user SET first_name=?, last_name=?, gender=?, phone=?, email=?, medical_notes=?, emergency_contacts=?, updated_at=datetime('now') WHERE id=?`,
+              [
+                fbData.first_name || localData.first_name,
+                fbData.last_name || localData.last_name,
+                fbData.gender || localData.gender,
+                fbData.phone || localData.phone,
+                fbData.email || localData.email,
+                fbData.medical_notes || localData.medical_notes,
+                JSON.stringify(fbContacts),
+                localData.id,
+              ]
+            );
+          }
+        } catch (err) {
+          console.warn('Firebase 同步失敗:', err);
         }
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('loadProfile 失敗:', error);
+      Alert.alert(t('profilePage.alert.loadFailed.title'), t('profilePage.alert.loadFailed.message'));
     } finally {
       setLoading(false);
     }
   };
 
-  /* -------------------------------------------------------
-     Emergency contacts helpers
-  -------------------------------------------------------- */
   const addEmergencyContact = () => {
-    setEmergencyContacts([...emergencyContacts, { name: '', phone: '' }]);
+    setEmergencyContacts((prev) => [...prev, { name: '', phone: '' }]);
   };
 
-  const updateEmergencyContact = (
-    index: number,
-    field: 'name' | 'phone',
-    value: string
-  ) => {
+  const removeEmergencyContact = (index: number) => {
+    setEmergencyContacts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateEmergencyContact = (index: number, field: 'name' | 'phone', value: string) => {
     const updated = [...emergencyContacts];
     updated[index] = { ...updated[index], [field]: value };
     setEmergencyContacts(updated);
   };
 
-  /* -------------------------------------------------------
-     Save profile (insert or update)
-  -------------------------------------------------------- */
   const saveProfile = async () => {
-    if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert('Required Fields', 'First and last name are required.');
+    if (!firstName.trim() || !lastName.trim() || !phoneNumber.trim()) {
+      Alert.alert(
+        t('profilePage.alert.validation.title'),
+        t('profilePage.alert.validation.requiredFields')
+      );
       return;
     }
 
     setSaving(true);
 
+    const normalizedPhone = normalizePhoneForKey(phoneNumber);
+
+    const validContacts = emergencyContacts
+      .map((c) => ({
+        name: c.name.trim(),
+        phone: c.phone.trim(),
+      }))
+      .filter((c) => c.name.length > 0 || c.phone.length > 0);
+
+    const contactsJson = JSON.stringify(validContacts);
+
+    const profileData = {
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      gender: gender.trim(),
+      phone: phoneNumber.trim(),
+      email: email.trim(),
+      medical_notes: medicalNotes.trim(),
+      emergency_contacts: contactsJson,
+      updated_at: new Date().toISOString(),
+    };
+
     try {
       await initDb();
       const db = getDb();
 
-      const contacts = JSON.stringify(
-        emergencyContacts.filter(c => c.name || c.phone)
-      );
-
       if (profileExists && profileId) {
         await db.executeSql(
-          `UPDATE user SET
-            first_name = ?,
-            last_name = ?,
-            gender = ?,
-            phone = ?,
-            email = ?,
-            medical_notes = ?,
-            emergency_contacts = ?,
-            updated_at = datetime('now')
-           WHERE id = ?`,
+          `UPDATE user SET first_name=?, last_name=?, gender=?, phone=?, email=?, medical_notes=?, emergency_contacts=?, updated_at=datetime('now') WHERE id=?`,
           [
-            firstName,
-            lastName,
-            gender,
-            phoneNumber,
-            email,
-            medicalNotes,
-            contacts,
+            profileData.first_name,
+            profileData.last_name,
+            profileData.gender,
+            profileData.phone,
+            profileData.email,
+            profileData.medical_notes,
+            profileData.emergency_contacts,
             profileId,
           ]
         );
-
-        Alert.alert('Profile Updated', 'Your profile has been updated.');
       } else {
         const result = await db.executeSql(
-          `INSERT INTO user (
-            first_name,
-            last_name,
-            gender,
-            phone,
-            email,
-            medical_notes,
-            emergency_contacts,
-            created_at,
-            updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+          `INSERT INTO user (first_name, last_name, gender, phone, email, medical_notes, emergency_contacts, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
           [
-            firstName,
-            lastName,
-            gender,
-            phoneNumber,
-            email,
-            medicalNotes,
-            contacts,
+            profileData.first_name,
+            profileData.last_name,
+            profileData.gender,
+            profileData.phone,
+            profileData.email,
+            profileData.medical_notes,
+            profileData.emergency_contacts,
           ]
         );
-
         setProfileId(result[0].insertId ?? null);
         setProfileExists(true);
-
-        Alert.alert('Profile Created', 'Your rescue profile is ready.');
       }
+
+      const fbRes = await fetch(
+        `https://rescue-drone-fyp-e0c23-default-rtdb.firebaseio.com/users/${normalizedPhone}/profile.json`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profileData),
+        }
+      );
+
+      if (!fbRes.ok) {
+        const errText = await fbRes.text();
+        console.warn('Firebase 上傳失敗:', fbRes.status, errText);
+        Alert.alert('警告', '本地儲存成功，但雲端同步失敗，請檢查網路');
+      }
+
+      Alert.alert(
+        t('profilePage.alert.saveSuccess.title'),
+        t('profilePage.alert.saveSuccess.message')
+      );
     } catch (error: any) {
-      console.error('❌ Save error:', error);
-      Alert.alert('Save Error', error?.message ?? 'Unknown error');
+      console.error('儲存失敗:', error);
+      Alert.alert(t('profilePage.alert.saveFailed.title'), t('profilePage.alert.saveFailed.message'));
     } finally {
       setSaving(false);
     }
   };
 
-  /* -------------------------------------------------------
-     Debug helpers (safe to remove later)
-  -------------------------------------------------------- */
   const clearDatabase = async () => {
-    Alert.alert('Clear Database', 'Delete all profile data?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          await resetDb();
-          setFirstName('');
-          setLastName('');
-          setGender('');
-          setPhoneNumber('');
-          setEmail('');
-          setMedicalNotes('');
-          setEmergencyContacts([{ name: '', phone: '' }]);
-          setProfileExists(false);
-          setProfileId(null);
-          Alert.alert('Database cleared');
+    Alert.alert(
+      t('profilePage.alert.clearDatabase.title'),
+      t('profilePage.alert.clearDatabase.message'),
+      [
+        { text: t('profilePage.button.cancel'), style: 'cancel' },
+        {
+          text: t('profilePage.button.clear'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await resetDb();
+              setFirstName('');
+              setLastName('');
+              setGender('');
+              setPhoneNumber('');
+              setEmail('');
+              setMedicalNotes('');
+              setEmergencyContacts([]);
+              setProfileExists(false);
+              setProfileId(null);
+              Alert.alert(t('profilePage.alert.clearSuccess.title'));
+            } catch (err) {
+              Alert.alert(t('profilePage.alert.clearFailed.title'), t('profilePage.alert.clearFailed.message'));
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  /* -------------------------------------------------------
-     Loading state
-  -------------------------------------------------------- */
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text>Loading profile…</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>{t('profilePage.loading')}</Text>
+      </SafeAreaView>
     );
   }
 
-  /* -------------------------------------------------------
-     UI
-  -------------------------------------------------------- */
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>
-          {profileExists ? 'Rescue Profile' : 'Set Up Rescue Profile'}
-        </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.title}>
+            {profileExists ? t('profilePage.title.existing') : t('profilePage.title.new')}
+          </Text>
 
-        <Input label="First Name *" value={firstName} onChange={setFirstName} />
-        <Input label="Last Name *" value={lastName} onChange={setLastName} />
-        <Input label="Gender" value={gender} onChange={setGender} />
-        <Input label="Phone" value={phoneNumber} onChange={setPhoneNumber} />
-        <Input label="Email" value={email} onChange={setEmail} />
-        <Input
-          label="Medical Notes"
-          value={medicalNotes}
-          onChange={setMedicalNotes}
-          multiline
-        />
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('profilePage.section.personal')}</Text>
 
-        <Text style={styles.section}>Emergency Contacts</Text>
-
-        {emergencyContacts.map((c, i) => (
-          <View key={i} style={styles.contact}>
             <Input
-              label="Name"
-              value={c.name}
-              onChange={v => updateEmergencyContact(i, 'name', v)}
+              label={t('profilePage.form.firstName.label')}
+              placeholder={t('profilePage.form.placeholder.firstName')}
+              value={firstName}
+              onChange={setFirstName}
+              required
             />
+
             <Input
-              label="Phone"
-              value={c.phone}
-              onChange={v => updateEmergencyContact(i, 'phone', v)}
+              label={t('profilePage.form.lastName.label')}
+              placeholder={t('profilePage.form.placeholder.lastName')}
+              value={lastName}
+              onChange={setLastName}
+              required
+            />
+
+            <Input
+              label={t('profilePage.form.gender.label')}
+              placeholder={t('profilePage.form.placeholder.gender')}
+              value={gender}
+              onChange={setGender}
+            />
+
+            <Input
+              label={t('profilePage.form.phone.label')}
+              placeholder={t('profilePage.form.placeholder.phoneNumber')}
+              value={phoneNumber}
+              onChange={setPhoneNumber}
+              keyboardType="phone-pad"
+              required
+            />
+
+            <Input
+              label={t('profilePage.form.email.label')}
+              placeholder={t('profilePage.form.placeholder.email')}
+              value={email}
+              onChange={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
           </View>
-        ))}
 
-        <TouchableOpacity onPress={addEmergencyContact}>
-          <Text style={styles.link}>+ Add Emergency Contact</Text>
-        </TouchableOpacity>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('profilePage.section.medical')}</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={medicalNotes}
+              onChangeText={setMedicalNotes}
+              multiline
+              placeholder={t('profilePage.form.medicalNotes.placeholder')}
+              placeholderTextColor="#999"
+            />
+          </View>
 
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.disabled]}
-          onPress={saveProfile}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.saveText}>
-              {profileExists ? 'Update Profile' : 'Save Profile'}
-            </Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t('profilePage.emergencyContacts.title')}</Text>
+              <TouchableOpacity onPress={addEmergencyContact}>
+                <Text style={styles.addButton}>+ {t('profilePage.emergencyContacts.addButton')}</Text>
+              </TouchableOpacity>
+            </View>
 
-        <TouchableOpacity onPress={clearDatabase}>
-          <Text style={styles.danger}>Clear Database</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {emergencyContacts.length === 0 ? (
+              <Text style={styles.emptyText}>
+                {t('profilePage.emergencyContacts.empty') || '尚未新增緊急聯絡人'}
+              </Text>
+            ) : (
+              emergencyContacts.map((contact, index) => (
+                <View key={index} style={styles.contactCard}>
+                  <Input
+                    label={t('profilePage.emergencyContacts.name')}
+                    placeholder={t('profilePage.form.placeholder.name')}
+                    value={contact.name}
+                    onChange={(v) => updateEmergencyContact(index, 'name', v)}
+                  />
+
+                  <Input
+                    label={t('profilePage.emergencyContacts.phone')}
+                    placeholder={t('profilePage.form.placeholder.phone')}
+                    value={contact.phone}
+                    onChange={(v) => updateEmergencyContact(index, 'phone', v)}
+                    keyboardType="phone-pad"
+                  />
+
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => removeEmergencyContact(index)}
+                  >
+                    <Text style={styles.removeText}>
+                      {t('profilePage.emergencyContacts.remove')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.saveButton, saving && styles.buttonDisabled]}
+            onPress={saveProfile}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {profileExists ? t('profilePage.button.update') : t('profilePage.button.save')}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={clearDatabase} style={styles.dangerLink}>
+            <Text style={styles.dangerText}>{t('profilePage.button.clearDatabase')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
-/* -------------------------------------------------------
-   Reusable Input component
--------------------------------------------------------- */
 const Input = ({
   label,
+  placeholder,
   value,
   onChange,
-  multiline = false,
+  keyboardType = 'default',
+  autoCapitalize = 'words',
+  required = false,
 }: {
   label: string;
+  placeholder?: string;
   value: string;
   onChange: (v: string) => void;
-  multiline?: boolean;
+  keyboardType?: 'default' | 'phone-pad' | 'email-address';
+  autoCapitalize?: 'none' | 'words';
+  required?: boolean;
 }) => (
   <View style={styles.inputGroup}>
-    <Text style={styles.label}>{label}</Text>
+    <Text style={styles.inputLabel}>
+      {label}
+      {required && <Text style={styles.requiredStar}> *</Text>}
+    </Text>
     <TextInput
-      style={[styles.input, multiline && styles.textArea]}
+      style={styles.input}
+      placeholder={placeholder}
+      placeholderTextColor="#999"
       value={value}
       onChangeText={onChange}
-      multiline={multiline}
+      keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
     />
   </View>
 );
 
-/* -------------------------------------------------------
-   Styles
--------------------------------------------------------- */
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
   flex: { flex: 1 },
-  container: { padding: 20 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  section: { fontSize: 20, fontWeight: '600', marginVertical: 16 },
-  inputGroup: { marginBottom: 14 },
-  label: { fontSize: 14, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: 'white',
+  scrollContent: { padding: 20, paddingBottom: 40 },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16, color: '#666', fontSize: 16 },
+
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 24,
   },
-  textArea: { height: 100 },
-  contact: {
-    borderWidth: 1,
-    borderColor: '#eee',
-    padding: 12,
-    borderRadius: 8,
+
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
+  addButton: { color: '#007AFF', fontWeight: '600', fontSize: 15 },
+
+  contactCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
   },
-  link: { color: '#2196F3', textAlign: 'center', marginVertical: 10 },
-  saveButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
+
+  inputGroup: { marginBottom: 16 },
+  inputLabel: { fontSize: 14, color: '#555', marginBottom: 6, fontWeight: '500' },
+  requiredStar: { color: '#FF3B30' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
   },
-  disabled: { backgroundColor: '#aaa' },
-  saveText: { color: 'white', fontSize: 18, fontWeight: '600' },
-  danger: {
-    color: '#F44336',
+  textArea: { minHeight: 120, textAlignVertical: 'top' },
+
+  removeButton: { alignSelf: 'flex-end', marginTop: 8 },
+  removeText: { color: '#FF3B30', fontSize: 14 },
+
+  saveButton: {
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  buttonDisabled: { backgroundColor: '#A8A8A8' },
+  buttonText: { color: 'white', fontSize: 18, fontWeight: '600' },
+
+  dangerLink: { alignItems: 'center', marginTop: 8 },
+  dangerText: { color: '#FF3B30', fontSize: 16 },
+
+  emptyText: {
+    color: '#888',
+    fontSize: 15,
     textAlign: 'center',
-    marginTop: 20,
+    paddingVertical: 20,
   },
 });
 

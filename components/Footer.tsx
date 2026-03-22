@@ -1,36 +1,118 @@
 import React from 'react';
-import { View, Button, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 interface FooterProps {
+  currentPage: number;
   onSelectPage: (page: number) => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ onSelectPage }) => {
+const Footer: React.FC<FooterProps> = ({ currentPage, onSelectPage }) => {
   const { t } = useTranslation();
+
+  const tabs = [
+    {
+      id: 1,                    // Map
+      label: t('footer.map') || '地圖',
+      emoji: '📍',
+    },
+    {
+      id: 2,                    // SOS
+      label: 'SOS',
+      isSOS: true,
+    },
+    {
+      id: 3,                    // Settings
+      label: t('footer.settings') || '設定',
+      emoji: '⚙️',
+    },
+  ];
+
   return (
     <View style={styles.footer}>
-      <View style={styles.buttonContainer}>
-        <Button title={t('footer.mapPage')} onPress={() => onSelectPage(1)} />
-        <Button title={t('footer.sosPage')} onPress={() => onSelectPage(2)} />
-        <Button title={t('footer.settingPage')} onPress={() => onSelectPage(3)} />
-      </View>
+      {tabs.map(tab => {
+        const isActive = currentPage === tab.id;
+        const labelColor = isActive ? '#D32F2F' : '#666666';
+        const emojiColor = tab.isSOS ? '#FFFFFF' : (isActive ? '#D32F2F' : '#666666');
+
+        return (
+          <TouchableOpacity
+            key={tab.id}
+            style={styles.tabItem}
+            onPress={() => onSelectPage(tab.id)}
+            activeOpacity={0.8}
+          >
+            {tab.isSOS ? (
+              <View style={styles.sosContainer}>
+                <View style={styles.sosCircle}>
+                  <Text style={styles.sosText}>{tab.label}</Text>
+                </View>
+                <Text style={[styles.tabLabel, { color: labelColor }]}>
+                  {tab.label}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={[styles.emoji, { color: emojiColor }]}>
+                  {tab.emoji}
+                </Text>
+                <Text style={[styles.tabLabel, { color: labelColor }]}>
+                  {tab.label}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   footer: {
-    flex: 0.1,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    height: Platform.OS === 'ios' ? 90 : 80,
+    backgroundColor: '#ffffff',  // 淺色底，或改成 '#111111' 如果是深色模式
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+    paddingTop: 20,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '90%',
+  tabItem: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sosContainer: {
+    alignItems: 'center',
+  },
+  sosCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 30,
+    backgroundColor: '#D32F2F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  sosText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  emoji: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
 

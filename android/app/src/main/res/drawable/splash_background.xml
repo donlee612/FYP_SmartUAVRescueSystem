@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 先用一個顏色資源作為背景（後面會定義） -->
+    <item android:drawable="@color/splash_background" />
+
+    <!-- 置中顯示 Logo 圖片 -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash" />
+    </item>
+
+</layer-list>
