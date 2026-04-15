@@ -2,6 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.fypproject">  <!-- 確保 package 與 applicationId 一致 -->
 
+    <!-- 允許查詢電話撥號功能 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
+
+    <!-- 通話權限（強烈建議加上） -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+
     <!-- 網路權限（Firestore 必須） -->
     <uses-permission android:name="android.permission.INTERNET" />
 
